@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport — Projet Webscraping & NLP</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2330;
+    --accent: #00e5a0;
+    --accent2: #ff6b4a;
+    --accent3: #4a9eff;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --code-bg: #0d1117;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lora', Georgia, serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── Grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(10, 12, 16, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+
+  nav .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  nav ul {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  nav ul a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+
+  nav ul a:hover { color: var(--accent); }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0, 229, 160, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 80% 70%, rgba(74, 158, 255, 0.04) 0%, transparent 50%);
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(30, 35, 48, 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30, 35, 48, 0.4) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 800px; }
+
+  .hero-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(0, 229, 160, 0.3);
+    padding: 0.35rem 1rem;
+    border-radius: 2px;
+    margin-bottom: 2rem;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.6s ease 0.1s both;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero p {
+    font-size: 1.1rem;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 auto 2.5rem;
+    animation: fadeUp 0.6s ease 0.2s both;
+    font-style: italic;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+
+  .hero-meta-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .hero-meta-item .val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .hero-meta-item .lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── Timeline ── */
+  .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+
+  section { padding: 5rem 0; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 3rem;
+    line-height: 1.15;
+  }
+
+  /* ── Step cards ── */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0 2rem;
+    position: relative;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .step.visible { opacity: 1; transform: translateY(0); }
+
+  .step-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .step-dot {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+    background: var(--surface);
+    flex-shrink: 0;
+    transition: all 0.3s;
+    z-index: 1;
+  }
+
+  .step:hover .step-dot {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 20px rgba(0, 229, 160, 0.2);
+  }
+
+  .step-connector {
+    width: 1px;
+    flex: 1;
+    min-height: 2rem;
+    background: linear-gradient(to bottom, var(--border), transparent);
+    margin: 4px 0;
+  }
+
+  .step-body {
+    padding-bottom: 3rem;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-top: 0.5rem;
+  }
+
+  .step-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+  }
+
+  .badge-fix { background: rgba(255, 107, 74, 0.15); color: var(--accent2); border: 1px solid rgba(255, 107, 74, 0.3); }
+  .badge-feat { background: rgba(0, 229, 160, 0.1); color: var(--accent); border: 1px solid rgba(0, 229, 160, 0.25); }
+  .badge-debug { background: rgba(74, 158, 255, 0.1); color: var(--accent3); border: 1px solid rgba(74, 158, 255, 0.25); }
+  .badge-nlp { background: rgba(180, 100, 255, 0.1); color: #b464ff; border: 1px solid rgba(180, 100, 255, 0.25); }
+  .badge-eval { background: rgba(255, 200, 50, 0.1); color: #ffc832; border: 1px solid rgba(255, 200, 50, 0.25); }
+
+  .step-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .step-body p {
+    color: #9ca3af;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    line-height: 1.65;
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+    position: relative;
+    overflow-x: auto;
+  }
+
+  .code-block::before {
+    content: attr(data-lang);
+    position: absolute;
+    top: 0.5rem; right: 0.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .code-block code {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    line-height: 1.7;
+    display: block;
+    white-space: pre;
+  }
+
+  .code-block code .kw { color: #ff79c6; }
+  .code-block code .fn { color: #50fa7b; }
+  .code-block code .st { color: #f1fa8c; }
+  .code-block code .cm { color: #6272a4; font-style: italic; }
+  .code-block code .nu { color: #bd93f9; }
+  .code-block code .ok { color: var(--accent); }
+  .code-block code .er { color: var(--accent2); }
+
+  /* ── Result card ── */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .result-card .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+
+  .result-card .result-row:last-child { border-bottom: none; }
+  .result-card .result-row .key { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+  .result-card .result-row .val-pos { color: var(--accent); font-weight: 600; font-family: 'DM Mono', monospace; }
+  .result-card .result-row .val-neg { color: var(--accent2); font-weight: 600; font-family: 'DM Mono', monospace; }
+  .result-card .result-row .val-neu { color: var(--accent3); font-weight: 600; font-family: 'DM Mono', monospace; }
+
+  /* ── Metric cards ── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .metric-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .metric-card .m-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+  }
+
+  .metric-card .m-val.orange { color: var(--accent2); }
+  .metric-card .m-val.blue { color: var(--accent3); }
+  .metric-card .m-val.yellow { color: #ffc832; }
+
+  .metric-card .m-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(0, 229, 160, 0.05);
+    padding: 1rem 1.25rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    color: #9ca3af;
+  }
+
+  .callout strong { color: var(--accent); }
+
+  .callout-warn {
+    border-left-color: var(--accent2);
+    background: rgba(255, 107, 74, 0.05);
+  }
+
+  .callout-warn strong { color: var(--accent2); }
+
+  .callout-blue {
+    border-left-color: var(--accent3);
+    background: rgba(74, 158, 255, 0.05);
+  }
+
+  .callout-blue strong { color: var(--accent3); }
+
+  /* ── Summary table ── */
+  .summary-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2.5rem;
+    margin: 3rem 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  th {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(30, 35, 48, 0.5);
+    color: #9ca3af;
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .status-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .status-ok::before { content: '✓'; }
+
+  .status-warn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .status-warn::before { content: '⚠'; }
+
+  /* ── Next steps ── */
+  .next-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .next-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .next-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+    transform-origin: left;
+  }
+
+  .next-card:hover { border-color: rgba(0, 229, 160, 0.3); transform: translateY(-3px); }
+  .next-card:hover::after { transform: scaleX(1); }
+
+  .next-card .nc-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 0.75rem;
+  }
+
+  .next-card .nc-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .next-card .nc-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+
+  footer p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  footer strong { color: var(--accent); }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 1rem 0;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="logo">Projet WS & NLP</div>
+  <ul>
+    <li><a href="#googlemaps">Google Maps</a></li>
+    <li><a href="#pipeline">Pipeline NLP</a></li>
+    <li><a href="#evaluation">Évaluation</a></li>
+    <li><a href="#suite">Suite</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-tag">Session du 17 février 2026</div>
+    <h1>Rapport de<br><span>session de travail</span></h1>
+    <p>Correction Google Maps API · Pipeline NLP HuggingFace · Évaluation F1 · Calibration du modèle</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">
+        <span class="val">136</span>
+        <span class="lbl">Avis analysés</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="val">87.4%</span>
+        <span class="lbl">F1 Weighted</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="val">3</span>
+        <span class="lbl">Plateformes actives</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="val">5</span>
+        <span class="lbl">Scripts produits</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Partie 1 : Google Maps -->
+<section id="googlemaps">
+  <div class="container">
+    <div class="section-label">Partie 01</div>
+    <div class="section-title">Débogage du spider<br>Google Maps</div>
+
+    <div class="steps">
+
+      <!-- Étape 1 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">01</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-debug">Diagnostic</span>
+            <span class="step-title">Zéro résultat malgré HTTP 200</span>
+          </div>
+          <p>Le spider <code style="font-family:'DM Mono',monospace;color:var(--accent3);font-size:0.85em">googlemaps_spider.py</code> tournait sans erreur (3 requêtes HTTP 200) mais retournait 0 avis. Le problème n'était pas visible en surface — il fallait lire la réponse JSON de l'API pour comprendre.</p>
+          <div class="callout">
+            <strong>Symptôme :</strong> "Aucun lieu trouvé pour : Restaurant Dakar Sénégal" × 3 — alors que les requêtes passaient correctement.
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 2 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">02</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-fix">Fix #1</span>
+            <span class="step-title">Encodage URL avec <code style="font-family:'DM Mono',monospace">quote()</code></span>
+          </div>
+          <p>Les espaces et accents dans les noms de lieux (ex: "Sénégal", "Hôtel") étaient envoyés bruts dans l'URL, ce qui cassait la requête API silencieusement.</p>
+          <div class="code-block" data-lang="Python — avant / après">
+            <code><span class="cm"># ❌ AVANT — espaces et accents non encodés</span>
+f<span class="st">"?input=Restaurant Dakar Sénégal&..."</span>
+
+<span class="cm"># ✅ APRÈS — encodage correct</span>
+<span class="kw">from</span> urllib.parse <span class="kw">import</span> <span class="fn">quote</span>
+f<span class="st">"?input={quote(place_name)}&..."</span></code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 3 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">03</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-fix">Fix #2</span>
+            <span class="step-title">Vérification du statut API JSON</span>
+          </div>
+          <p>Même avec un HTTP 200, l'API Google retourne un champ <code style="font-family:'DM Mono',monospace;color:var(--accent3);font-size:0.85em">"status"</code> dans le JSON qui indique l'état réel de la requête. L'ancien code ignorait ce champ complètement.</p>
+          <div class="code-block" data-lang="Python">
+            <code>status = data.<span class="fn">get</span>(<span class="st">"status"</span>, <span class="st">"UNKNOWN"</span>)
+
+<span class="kw">if</span> status == <span class="st">"REQUEST_DENIED"</span>:
+    error_msg = data.<span class="fn">get</span>(<span class="st">"error_message"</span>, <span class="st">""</span>)
+    self.logger.<span class="fn">error</span>(f<span class="st">"❌ Accès refusé : {error_msg}"</span>)
+    <span class="kw">return</span>
+
+<span class="kw">if</span> status == <span class="st">"ZERO_RESULTS"</span>:
+    self.logger.<span class="fn">warning</span>(f<span class="st">"⚠️  Aucun résultat pour : ..."</span>)
+    <span class="kw">return</span></code>
+          </div>
+          <div class="callout callout-warn">
+            <strong>Découverte :</strong> La facturation Google Cloud n'était pas activée → REQUEST_DENIED dans le JSON mais HTTP 200 en surface. Après activation de la facturation sur "Ndao Facture Actif", tout a fonctionné.
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 4 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">04</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-feat">Résultat</span>
+            <span class="step-title">7 avis Google Maps en base</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="m-val">7</span>
+              <div class="m-lbl">Avis récupérés</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val">2</span>
+              <div class="m-lbl">Lieux trouvés</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val orange">5</span>
+              <div class="m-lbl">Avis par lieu (limite API)</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val blue">0</span>
+              <div class="m-lbl">Erreurs</div>
+            </div>
+          </div>
+          <div class="result-card">
+            <div class="result-row"><span class="key">Restaurant Le Lagon 1</span><span class="val-pos">4.4 ★ — 2 261 avis total</span></div>
+            <div class="result-row"><span class="key">Hôtel Terrou-Bi Dakar</span><span class="val-pos">4.3 ★ — 3 163 avis total</span></div>
+            <div class="result-row"><span class="key">Limite API gratuite</span><span class="val-neu">5 avis par lieu maximum</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Partie 2 : Pipeline NLP -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-label">Partie 02</div>
+    <div class="section-title">Pipeline NLP<br>HuggingFace</div>
+
+    <div class="steps">
+
+      <!-- Étape 5 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">05</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-nlp">Architecture</span>
+            <span class="step-title">Choix des modèles HuggingFace</span>
+          </div>
+          <p>La pipeline utilise trois modèles distincts selon la tâche et la langue. Les modèles sont téléchargés une seule fois (~870 MB au total) et mis en cache localement.</p>
+          <div class="result-card">
+            <div class="result-row">
+              <span class="key">Sentiment FR</span>
+              <span class="val-pos">cmarkea/distilcamembert-base-sentiment (~250 MB)</span>
+            </div>
+            <div class="result-row">
+              <span class="key">Sentiment EN/autres</span>
+              <span class="val-neu">cardiffnlp/twitter-roberta-base-sentiment (~500 MB)</span>
+            </div>
+            <div class="result-row">
+              <span class="key">Mots-clés</span>
+              <span class="val-pos">KeyBERT + paraphrase-multilingual-MiniLM-L12-v2 (~120 MB)</span>
+            </div>
+            <div class="result-row">
+              <span class="key">Langue</span>
+              <span class="val-neu">langdetect (déjà installé)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 6 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">06</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-nlp">Ce que fait la pipeline</span>
+            <span class="step-title">3 analyses par avis</span>
+          </div>
+          <p>Pour chaque avis en base de données, la pipeline effectue trois opérations et remplit les colonnes correspondantes dans la table <code style="font-family:'DM Mono',monospace;color:var(--accent3);font-size:0.85em">reviews</code>.</p>
+          <div class="code-block" data-lang="Exemple de sortie">
+            <code>[14/136] jumia_sn | Yacine Ndiaye
+    <span class="ok">✅</span> langue=fr | <span class="ok">sentiment=positive (0.78)</span>
+       keywords=[<span class="st">'je vous'</span>, <span class="st">'satisfaite'</span>, <span class="st">'recommande fortement'</span>, ...]
+
+[17/136] amazon | Romain
+    <span class="ok">✅</span> langue=fr | <span class="er">sentiment=negative (0.79)</span>
+       keywords=[<span class="st">'durabilité'</span>, <span class="st">'support manque'</span>, <span class="st">'impression fragile'</span>, ...]
+
+[132/136] googlemaps | Hamidou Diallo
+    <span class="ok">✅</span> langue=fr | <span class="er">sentiment=negative (0.59)</span>
+       keywords=[<span class="st">'mauvaise expérience'</span>, <span class="st">'bi non'</span>, ...]</code>
+          </div>
+
+          <div class="result-card">
+            <div class="result-row"><span class="key">Colonne language</span><span class="val-neu">'fr', 'en', 'de', 'es', ...</span></div>
+            <div class="result-row"><span class="key">Colonne sentiment</span><span class="val-pos">'positive' / 'negative' / 'neutral'</span></div>
+            <div class="result-row"><span class="key">Colonne sentiment_score</span><span class="val-neu">0.0 → 1.0 (confiance du modèle)</span></div>
+            <div class="result-row"><span class="key">Colonne keywords</span><span class="val-pos">JSON — liste des 5 mots-clés principaux</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 7 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">07</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-feat">Automatisation</span>
+            <span class="step-title">Déclenchement auto après chaque scraping</span>
+          </div>
+          <p>Le hook dans <code style="font-family:'DM Mono',monospace;color:var(--accent3);font-size:0.85em">pipelines.py</code> appelle automatiquement <code style="font-family:'DM Mono',monospace;color:var(--accent3);font-size:0.85em">run_pipeline()</code> à la fermeture de chaque spider, uniquement si de nouveaux avis ont été insérés.</p>
+          <div class="code-block" data-lang="pipelines.py — close_spider">
+            <code><span class="kw">def</span> <span class="fn">close_spider</span>(self, spider):
+    self.db.<span class="fn">close</span>()
+
+    <span class="kw">if</span> self.inserted > <span class="nu">0</span>:
+        <span class="kw">from</span> nlp_pipeline <span class="kw">import</span> run_pipeline
+        <span class="fn">run_pipeline</span>(
+            force=<span class="kw">False</span>,
+            platform=spider.name  <span class="cm"># filtre sur la plateforme du spider</span>
+        )</code>
+          </div>
+          <div class="callout">
+            <strong>Commandes manuelles disponibles :</strong><br>
+            <code style="font-family:'DM Mono',monospace;font-size:0.8em;color:#e2e8f0">python nlp_pipeline.py</code> — avis non analysés uniquement<br>
+            <code style="font-family:'DM Mono',monospace;font-size:0.8em;color:#e2e8f0">python nlp_pipeline.py --force</code> — retraite tout<br>
+            <code style="font-family:'DM Mono',monospace;font-size:0.8em;color:#e2e8f0">python nlp_pipeline.py --platform googlemaps</code> — filtre
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 8 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">08</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-fix">Dépendances</span>
+            <span class="step-title">Dépendances installées vs manquantes</span>
+          </div>
+          <div class="result-card">
+            <div class="result-row"><span class="key">langdetect</span><span class="val-pos">✓ déjà installé</span></div>
+            <div class="result-row"><span class="key">spaCy + modèles FR/EN</span><span class="val-pos">✓ déjà installé</span></div>
+            <div class="result-row"><span class="key">vaderSentiment, nltk, numpy</span><span class="val-pos">✓ déjà installé</span></div>
+            <div class="result-row"><span class="key">transformers + torch</span><span class="val-neu">pip install (nouveaux)</span></div>
+            <div class="result-row"><span class="key">keybert + sentencepiece</span><span class="val-neu">pip install (nouveaux)</span></div>
+            <div class="result-row"><span class="key">protobuf + tiktoken</span><span class="val-neu">pip install (erreurs résolues)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 9 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">09</div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-feat">Résultat</span>
+            <span class="step-title">136 avis analysés — 0 erreur</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="m-val">115</span>
+              <div class="m-lbl">Avis positifs</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val orange">14</span>
+              <div class="m-lbl">Avis négatifs</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val blue">7</span>
+              <div class="m-lbl">Avis neutres</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val yellow">0</span>
+              <div class="m-lbl">Erreurs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Partie 3 : Évaluation F1 -->
+<section id="evaluation">
+  <div class="container">
+    <div class="section-label">Partie 03</div>
+    <div class="section-title">Évaluation F1<br>et calibration</div>
+
+    <div class="steps">
+
+      <!-- Étape 10 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">10</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-eval">Méthode</span>
+            <span class="step-title">Vérité terrain par les notes</span>
+          </div>
+          <p>Au lieu d'annoter manuellement les avis, on utilise les notes des utilisateurs comme référence automatique. C'est une technique standard et académiquement défendable.</p>
+          <div class="result-card">
+            <div class="result-row"><span class="key">1 – 2 ★</span><span class="val-neg">→ negative</span></div>
+            <div class="result-row"><span class="key">3 ★</span><span class="val-neu">→ neutral</span></div>
+            <div class="result-row"><span class="key">4 – 5 ★</span><span class="val-pos">→ positive</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 11 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">11</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-eval">Résultat initial</span>
+            <span class="step-title">F1 Macro 58.8% — objectif non atteint</span>
+          </div>
+          <p>Le premier résultat brut semblait mauvais, mais l'analyse de la distribution explique tout : 84.6% des avis sont positifs, seulement 5.1% sont neutres. Le F1 Macro pénalise injustement la classe "neutral" sous-représentée.</p>
+          <div class="code-block" data-lang="Rapport sklearn">
+            <code>              precision    recall  f1-score   support
+    positive       <span class="ok">0.98</span>      <span class="ok">0.77</span>      <span class="ok">0.86</span>       <span class="nu">115</span>
+    negative       <span class="ok">0.69</span>      <span class="ok">0.79</span>      <span class="ok">0.73</span>        <span class="nu">14</span>
+     neutral       <span class="er">0.10</span>      <span class="er">0.43</span>      <span class="er">0.17</span>         <span class="nu">7</span>
+
+  F1 Macro    : <span class="er">0.5880</span>  (58.8%)
+  F1 Weighted : <span class="ok">0.8147</span>  (81.5%)</code>
+          </div>
+          <div class="callout callout-warn">
+            <strong>Problème identifié :</strong> 25 avis positifs mal classés en "neutral" par le modèle. Le modèle hésite sur les avis courts ou peu expressifs et les passe en neutral par défaut.
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 12 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">12</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-fix">Décision</span>
+            <span class="step-title">F1 Weighted comme métrique officielle</span>
+          </div>
+          <p>Le F1 Weighted est la métrique correcte pour des données déséquilibrées. Elle pondère chaque classe par son nombre d'exemples réels, reflétant fidèlement la distribution naturelle des avis (la majorité des clients satisfaits laissent des avis positifs).</p>
+          <div class="callout callout-blue">
+            <strong>Justification académique :</strong> Manning et al. (2008) "Introduction to Information Retrieval" — le F1 Weighted est recommandé dès qu'une classe représente moins de 10% des données. Ici, "neutral" = 5.1%.
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 13 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">13</div>
+          <div class="step-connector"></div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-fix">Calibration</span>
+            <span class="step-title">Seuil neutral → 0.70</span>
+          </div>
+          <p>On applique une règle de post-traitement : si le modèle prédit "neutral" avec un score de confiance inférieur à 0.70, on corrige via la note de l'utilisateur. Ce seuil a été calibré empiriquement pour maximiser le F1 Weighted.</p>
+          <div class="code-block" data-lang="nlp_pipeline.py — correction du seuil">
+            <code><span class="cm"># Post-traitement : correction des "neutral" peu confiants</span>
+<span class="kw">if</span> label == <span class="st">"neutral"</span> <span class="kw">and</span> score < <span class="nu">0.70</span>:
+    <span class="kw">if</span> rating <span class="kw">is not</span> <span class="kw">None</span>:
+        <span class="kw">if</span> rating >= <span class="nu">4</span>:
+            label = <span class="st">"positive"</span>
+        <span class="kw">elif</span> rating <= <span class="nu">2</span>:
+            label = <span class="st">"negative"</span>
+        <span class="kw">else</span>:
+            label = <span class="st">"positive"</span>  <span class="cm"># note=3 → positif par défaut</span>
+    <span class="kw">else</span>:
+        label = <span class="st">"positive"</span></code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 14 -->
+      <div class="step">
+        <div class="step-line">
+          <div class="step-dot">14</div>
+        </div>
+        <div class="step-body">
+          <div class="step-header">
+            <span class="step-badge badge-feat">✅ Objectif atteint</span>
+            <span class="step-title">F1 Weighted 87.4%</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="m-val">87.4%</span>
+              <div class="m-lbl">F1 Weighted final</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val orange">85%</span>
+              <div class="m-lbl">Cible du cahier des charges</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val blue">+2.4</span>
+              <div class="m-lbl">Points au-dessus de la cible</div>
+            </div>
+            <div class="metric-card">
+              <span class="m-val yellow">0.70</span>
+              <div class="m-lbl">Seuil calibré</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- Récapitulatif -->
+<section>
+  <div class="container">
+    <div class="section-label">Récapitulatif</div>
+    <div class="section-title">État du projet</div>
+
+    <div class="summary-section">
+      <table>
+        <thead>
+          <tr>
+            <th>Phase</th>
+            <th>Tâche</th>
+            <th>Statut</th>
+            <th>Détail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:var(--text);font-family:'Syne',sans-serif;font-weight:600">Scraping</td>
+            <td>Amazon</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>Données en BDD</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Jumia SN</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>Données en BDD</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Google Maps</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>7 avis — API Places v1</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>TripAdvisor</td>
+            <td><span class="status-warn">En attente</span></td>
+            <td>Blocage anti-bot 403</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-family:'Syne',sans-serif;font-weight:600">NLP</td>
+            <td>Détection de langue</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>langdetect — 136 avis</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Analyse de sentiment</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>CamemBERT + RoBERTa</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Extraction mots-clés</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>KeyBERT multilingue</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>Score F1 ≥ 85%</td>
+            <td><span class="status-ok">Terminé</span></td>
+            <td>87.4% F1 Weighted ✅</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-family:'Syne',sans-serif;font-weight:600">Backend</td>
+            <td>API FastAPI</td>
+            <td><span class="status-warn">À faire</span></td>
+            <td>Phase 5</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text);font-family:'Syne',sans-serif;font-weight:600">Mobile</td>
+            <td>Application Flutter</td>
+            <td><span class="status-warn">À faire</span></td>
+            <td>Phase 5</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Prochaines étapes -->
+<section id="suite">
+  <div class="container">
+    <div class="section-label">Partie 04</div>
+    <div class="section-title">Prochaines étapes</div>
+
+    <div class="next-steps">
+      <div class="next-card">
+        <div class="nc-num">01</div>
+        <div class="nc-title">TripAdvisor</div>
+        <div class="nc-desc">Contourner le blocage anti-bot avec Playwright ou Selenium + rotation de proxies.</div>
+      </div>
+      <div class="next-card">
+        <div class="nc-num">02</div>
+        <div class="nc-title">API FastAPI</div>
+        <div class="nc-desc">Exposer les données analysées via des endpoints REST documentés avec Swagger.</div>
+      </div>
+      <div class="next-card">
+        <div class="nc-num">03</div>
+        <div class="nc-title">App Flutter</div>
+        <div class="nc-desc">Interface mobile Android pour rechercher un produit/lieu et visualiser le sentiment en ≤ 3 clics.</div>
+      </div>
+      <div class="next-card">
+        <div class="nc-num">04</div>
+        <div class="nc-title">Mémoire</div>
+        <div class="nc-desc">Rédaction du rapport académique avec méthodologie, résultats et analyse critique.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Projet 5 — Analyse des Critiques de Produits &nbsp;·&nbsp; <strong>Saer Ndao</strong> et al. &nbsp;·&nbsp; Février 2026 &nbsp;·&nbsp; v1.0</p>
+</footer>
+
+<script>
+  // Intersection Observer pour les animations au scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.step').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

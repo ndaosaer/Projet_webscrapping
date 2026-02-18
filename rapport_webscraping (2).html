@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport Technique — Projet Webscraping Multiplateforme</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white:     #ffffff;
+    --gray-50:   #f8f9fa;
+    --gray-100:  #f0f1f3;
+    --gray-200:  #e2e4e8;
+    --gray-300:  #c8ccd4;
+    --gray-500:  #8892a0;
+    --gray-700:  #4a5260;
+    --gray-900:  #1a1f2e;
+    --blue:      #1a3a6b;
+    --blue-mid:  #2d5fa6;
+    --blue-light:#e8eef8;
+    --blue-pale: #f2f5fb;
+    --red:       #b91c1c;
+    --red-light: #fef2f2;
+    --green:     #15803d;
+    --green-light:#f0fdf4;
+    --amber:     #92400e;
+    --amber-light:#fffbeb;
+    --accent:    #c9972b;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--gray-50);
+    color: var(--gray-900);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 15.5px;
+    line-height: 1.75;
+  }
+
+  /* ── NAV ──────────────────────────────────────────────────── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--blue);
+    padding: 0 5vw;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+  .nav-logo {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .78rem; color: rgba(255,255,255,.85); letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    font-size: .78rem; color: rgba(255,255,255,.65); text-decoration: none;
+    letter-spacing: .04em; transition: color .2s; text-transform: uppercase;
+  }
+  .nav-links a:hover { color: #fff; }
+  @media(max-width:768px){ .nav-links { display:none; } }
+
+  /* ── COVER ────────────────────────────────────────────────── */
+  .cover {
+    background: var(--blue);
+    color: white;
+    padding: 100px 10vw 70px;
+    border-bottom: 4px solid var(--accent);
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute; right: -60px; top: -60px;
+    width: 420px; height: 420px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.03);
+    pointer-events: none;
+  }
+  .cover-tag {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 1.5rem;
+    display: flex; align-items: center; gap: .7rem;
+  }
+  .cover-tag::before { content: ''; display: block; width: 28px; height: 1px; background: var(--accent); }
+  .cover h1 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: clamp(2rem, 5vw, 3.6rem); font-weight: 700; line-height: 1.15;
+    max-width: 800px; margin-bottom: 1.5rem;
+  }
+  .cover-sub {
+    font-size: 1.05rem; color: rgba(255,255,255,.65); max-width: 600px;
+    font-weight: 300; margin-bottom: 3.5rem;
+  }
+  .cover-meta {
+    display: flex; gap: 3rem; flex-wrap: wrap;
+    border-top: 1px solid rgba(255,255,255,.12); padding-top: 2rem;
+  }
+  .meta-item { }
+  .meta-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.45); margin-bottom: .3rem; font-family: 'Source Code Pro', monospace; }
+  .meta-value { font-size: 1rem; color: rgba(255,255,255,.9); font-weight: 500; }
+
+  /* ── KPI STRIP ────────────────────────────────────────────── */
+  .kpi-strip {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .kpi-item {
+    padding: 2rem 2.5rem;
+    border-right: 1px solid var(--gray-200);
+    position: relative;
+  }
+  .kpi-item:last-child { border-right: none; }
+  .kpi-item::before {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px; background: var(--blue);
+  }
+  .kpi-num {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 2.4rem; font-weight: 700; color: var(--blue); line-height: 1;
+  }
+  .kpi-label { font-size: .8rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: .08em; margin-top: .4rem; }
+  @media(max-width:700px){ .kpi-strip{grid-template-columns:1fr 1fr;} }
+
+  /* ── LAYOUT ───────────────────────────────────────────────── */
+  .page { max-width: 1100px; margin: 0 auto; padding: 0 5vw; }
+
+  section.body-section {
+    padding: 4.5rem 0;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  /* ── SECTION HEADER ───────────────────────────────────────── */
+  .section-header {
+    display: flex; align-items: flex-start; gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--blue);
+  }
+  .section-number {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 3rem; font-weight: 700; color: var(--gray-200);
+    line-height: 1; flex-shrink: 0; min-width: 2.5rem;
+  }
+  .section-titles { }
+  .section-eyebrow {
+    font-family: 'Source Code Pro', monospace;
+    font-size: .7rem; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--blue-mid); margin-bottom: .3rem;
+  }
+  h2 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: clamp(1.4rem, 2.5vw, 1.9rem); font-weight: 700;
+    color: var(--blue); line-height: 1.2;
+  }
+
+  h3 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 1.15rem; font-weight: 700; color: var(--blue);
+    margin: 2.5rem 0 .9rem;
+    padding-left: .9rem;
+    border-left: 3px solid var(--accent);
+  }
+
+  p { margin-bottom: 1.1rem; color: var(--gray-700); }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── CALLOUT BOXES ────────────────────────────────────────── */
+  .callout {
+    border-radius: 4px; padding: 1.2rem 1.6rem; margin: 1.5rem 0;
+    border-left: 4px solid; display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: .15rem; }
+  .callout p { margin: 0; font-size: .92rem; }
+  .callout-blue  { background: var(--blue-pale);   border-color: var(--blue-mid); }
+  .callout-green { background: var(--green-light);  border-color: var(--green);   }
+  .callout-amber { background: var(--amber-light);  border-color: var(--accent);  }
+  .callout-red   { background: var(--red-light);    border-color: var(--red);     }
+
+  /* ── CARDS ────────────────────────────────────────────────── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+  .card {
+    background: var(--white); border: 1px solid var(--gray-200);
+    border-radius: 6px; padding: 1.5rem;
+    border-top: 3px solid var(--blue);
+    transition: box-shadow .2s;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  .card-icon { font-size: 1.6rem; margin-bottom: .8rem; }
+  .card h4 { font-family: 'Libre Baskerville', serif; font-size: .95rem; font-weight: 700; color: var(--blue); margin-bottom: .4rem; }
+  .card p { font-size: .85rem; color: var(--gray-500); margin: 0; }
+
+  /* ── CODE ─────────────────────────────────────────────────── */
+  .code-block {
+    background: var(--gray-900); border-radius: 4px;
+    padding: 1.4rem 1.8rem; margin: 1.4rem 0; overflow-x: auto;
+    border: 1px solid var(--gray-200);
+  }
+  .code-label {
+    font-family: 'Source Code Pro', monospace; font-size: .67rem;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: .7rem;
+  }
+  .code-block pre { font-family: 'Source Code Pro', monospace; font-size: .82rem; line-height: 1.75; color: #d0d8e8; }
+  .kw{color:#bb86fc} .str{color:#a8d8a8} .cm{color:#6a7a8a;font-style:italic} .fn{color:#82aaff} .num{color:#f78c6c}
+
+  /* ── TABLES ───────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--gray-200); border-radius: 6px; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .data-table thead { background: var(--blue); }
+  .data-table th { color: white; font-weight: 600; padding: .8rem 1.1rem; text-align: left; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; }
+  .data-table td { padding: .8rem 1.1rem; border-bottom: 1px solid var(--gray-100); color: var(--gray-700); vertical-align: top; }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:nth-child(even) td { background: var(--gray-50); }
+  .data-table tbody tr:hover td { background: var(--blue-pale); }
+
+  /* ── BADGES ───────────────────────────────────────────────── */
+  .badge { display: inline-block; font-size: .7rem; font-weight: 600; padding: .15rem .55rem; border-radius: 3px; letter-spacing: .04em; text-transform: uppercase; font-family: 'Source Code Pro', monospace; }
+  .badge-green  { background: var(--green-light);  color: var(--green); }
+  .badge-red    { background: var(--red-light);    color: var(--red); }
+  .badge-blue   { background: var(--blue-light);   color: var(--blue-mid); }
+  .badge-amber  { background: var(--amber-light);  color: var(--amber); }
+
+  /* ── PROB/SOL ─────────────────────────────────────────────── */
+  .prob-grid { display: flex; flex-direction: column; gap: 1.2rem; margin-top: 1.5rem; }
+  .prob-item { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media(max-width:700px){ .prob-item{grid-template-columns:1fr;} }
+  .prob-box, .sol-box { border-radius: 4px; padding: 1.4rem; border: 1px solid; }
+  .prob-box { background: var(--red-light); border-color: #fca5a5; }
+  .sol-box  { background: var(--green-light); border-color: #86efac; }
+  .box-tag { font-family: 'Source Code Pro', monospace; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; margin-bottom: .6rem; display: flex; align-items: center; gap: .5rem; }
+  .prob-box .box-tag { color: var(--red); }
+  .sol-box  .box-tag { color: var(--green); }
+  .box-tag::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .prob-box h4, .sol-box h4 { font-family: 'Libre Baskerville', serif; font-size: .95rem; font-weight: 700; margin-bottom: .4rem; color: var(--gray-900); }
+  .prob-box p, .sol-box p { font-size: .85rem; color: var(--gray-700); margin: 0; }
+
+  /* ── TIMELINE ─────────────────────────────────────────────── */
+  .timeline { padding-left: 2rem; position: relative; margin-top: 1.5rem; }
+  .timeline::before { content: ''; position: absolute; left: 0; top: .5rem; bottom: .5rem; width: 2px; background: var(--gray-200); }
+  .tl-item { position: relative; margin-bottom: 2.2rem; }
+  .tl-item:last-child { margin-bottom: 0; }
+  .tl-dot { position: absolute; left: -2.45rem; top: .35rem; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); border: 2px solid white; box-shadow: 0 0 0 2px var(--blue); }
+  .tl-tag { font-family: 'Source Code Pro', monospace; font-size: .7rem; color: var(--blue-mid); letter-spacing: .1em; text-transform: uppercase; margin-bottom: .35rem; }
+  .tl-item h4 { font-family: 'Libre Baskerville', serif; font-size: 1rem; font-weight: 700; color: var(--blue); margin-bottom: .35rem; }
+  .tl-item p { font-size: .9rem; color: var(--gray-700); margin: 0; }
+
+  /* ── SCHEMA ───────────────────────────────────────────────── */
+  .schema { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin: 1.5rem 0; }
+  .schema-box { background: var(--blue-pale); border: 1px solid var(--blue-light); border-radius: 6px; padding: .9rem 1.3rem; text-align: center; min-width: 110px; }
+  .schema-box .s-icon { font-size: 1.4rem; margin-bottom: .3rem; }
+  .schema-box .s-label { font-family: 'Source Code Pro', monospace; font-size: .65rem; color: var(--blue); text-transform: uppercase; line-height: 1.4; }
+  .schema-arrow { color: var(--gray-300); font-size: 1.3rem; }
+
+  /* ── STEP LIST ────────────────────────────────────────────── */
+  .step-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+  .step-item { display: flex; gap: 1.2rem; align-items: flex-start; background: var(--white); border: 1px solid var(--gray-200); border-radius: 6px; padding: 1.3rem; }
+  .step-num { font-family: 'Libre Baskerville', serif; font-size: 1.8rem; font-weight: 700; color: var(--gray-200); line-height: 1; min-width: 2rem; flex-shrink: 0; }
+  .step-body h4 { font-family: 'Libre Baskerville', serif; font-size: .95rem; font-weight: 700; color: var(--blue); margin-bottom: .3rem; }
+  .step-body p { font-size: .87rem; color: var(--gray-500); margin: 0; }
+
+  /* ── FOOTER ───────────────────────────────────────────────── */
+  footer {
+    background: var(--blue); color: rgba(255,255,255,.5);
+    padding: 2.5rem 5vw; text-align: center;
+    font-size: .8rem; font-family: 'Source Code Pro', monospace;
+    letter-spacing: .06em;
+  }
+
+  /* ── REVEAL ───────────────────────────────────────────────── */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  code { font-family: 'Source Code Pro', monospace; font-size: .82em; background: var(--blue-pale); padding: .1rem .4rem; border-radius: 3px; color: var(--blue-mid); }
+  strong.hl { color: var(--blue); font-weight: 600; }
+  strong.hl2 { color: var(--blue-mid); font-weight: 600; }
+  strong.hl3 { color: var(--red); font-weight: 600; }
+  strong.hl4 { color: var(--green); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-logo">Review Analyzer — Rapport Technique</span>
+  <ul class="nav-links">
+    <li><a href="#objectif">Objectif</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#tripadvisor">TripAdvisor</a></li>
+    <li><a href="#problemes">Problèmes</a></li>
+    <li><a href="#amazon">Amazon</a></li>
+    <li><a href="#consolidation">Consolidation</a></li>
+    <li><a href="#resultats">Résultats</a></li>
+    <li><a href="#suite">Suite</a></li>
+  </ul>
+</nav>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-tag">Rapport Technique — Projet Webscraping</div>
+  <h1>Collecte & Consolidation d'Avis Clients Multiplateforme</h1>
+  <p class="cover-sub">
+    Documentation complète du pipeline de scraping automatisé couvrant TripAdvisor,
+    Amazon, Google Maps et Jumia — de la collecte brute à la base de données unifiée.
+  </p>
+  <div class="cover-meta">
+    <div class="meta-item"><div class="meta-label">Date</div><div class="meta-value">Février 2026</div></div>
+    <div class="meta-item"><div class="meta-label">Localisation</div><div class="meta-value">Dakar, Sénégal</div></div>
+    <div class="meta-item"><div class="meta-label">Projet</div><div class="meta-value">Review Analyzer</div></div>
+    <div class="meta-item"><div class="meta-label">Technologie</div><div class="meta-value">Python · Selenium · SQLite</div></div>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi-item"><div class="kpi-num">2 082</div><div class="kpi-label">Avis collectés au total</div></div>
+  <div class="kpi-item"><div class="kpi-num">4</div><div class="kpi-label">Plateformes couvertes</div></div>
+  <div class="kpi-item"><div class="kpi-num">1 917</div><div class="kpi-label">Avis TripAdvisor</div></div>
+  <div class="kpi-item"><div class="kpi-num">6</div><div class="kpi-label">Scripts utilitaires</div></div>
+</div>
+
+<div class="page">
+
+<!-- ── 01 OBJECTIF ────────────────────────────────────────────── -->
+<section class="body-section" id="objectif">
+  <div class="section-header reveal">
+    <div class="section-number">01</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Introduction</div>
+      <h2>Objectif du projet</h2>
+    </div>
+  </div>
+
+  <p>L'objectif principal de ce projet est de construire un <strong class="hl">pipeline complet de collecte d'avis clients en ligne</strong>, depuis le scraping automatisé jusqu'au stockage structuré en base de données, en vue d'une analyse NLP (traitement du langage naturel) et de sentiment analysis.</p>
+
+  <p>Le périmètre initial se concentre sur les <strong class="hl">restaurants de Dakar, Sénégal</strong> via TripAdvisor et Google Maps, avec une extension aux produits e-commerce via Jumia et Amazon. L'enjeu est de centraliser des données hétérogènes provenant de sources très différentes dans un schéma unifié exploitable.</p>
+
+  <div class="card-grid reveal">
+    <div class="card"><div class="card-icon">🎯</div><h4>Collecte automatisée</h4><p>Scraper sans intervention manuelle les avis sur TripAdvisor, Google Maps, Jumia et Amazon.</p></div>
+    <div class="card"><div class="card-icon">🗄️</div><h4>Base unifiée</h4><p>Centraliser toutes les sources dans une seule base SQLite avec un schéma commun et extensible.</p></div>
+    <div class="card"><div class="card-icon">🧠</div><h4>Prêt pour le NLP</h4><p>Préparer les données pour l'analyse de sentiments, extraction de mots-clés et classification.</p></div>
+    <div class="card"><div class="card-icon">📊</div><h4>Insights actionnables</h4><p>Produire des visualisations sur la réputation des établissements et des produits.</p></div>
+  </div>
+</section>
+
+<!-- ── 02 ARCHITECTURE ─────────────────────────────────────────── -->
+<section class="body-section" id="architecture">
+  <div class="section-header reveal">
+    <div class="section-number">02</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Structure</div>
+      <h2>Architecture technique</h2>
+    </div>
+  </div>
+
+  <div class="schema reveal">
+    <div class="schema-box"><div class="s-icon">🌐</div><div class="s-label">TripAdvisor<br>Google Maps<br>Jumia · Amazon</div></div>
+    <div class="schema-arrow">→</div>
+    <div class="schema-box"><div class="s-icon">🕷️</div><div class="s-label">Spiders<br>Selenium</div></div>
+    <div class="schema-arrow">→</div>
+    <div class="schema-box"><div class="s-icon">📄</div><div class="s-label">Fichiers<br>JSON</div></div>
+    <div class="schema-arrow">→</div>
+    <div class="schema-box"><div class="s-icon">🗄️</div><div class="s-label">SQLite<br>SQLAlchemy</div></div>
+    <div class="schema-arrow">→</div>
+    <div class="schema-box"><div class="s-icon">🧠</div><div class="s-label">Analyse<br>NLP</div></div>
+  </div>
+
+  <h3>Arborescence du projet</h3>
+  <div class="code-block reveal">
+    <div class="code-label">Structure des fichiers</div>
+    <pre>
+review_analyzer/
+├── database/
+│   ├── db.py                       <span class="cm"># Connexion SQLAlchemy + init_db()</span>
+│   ├── schema.py                   <span class="cm"># Modèle Review (ORM)</span>
+│   └── reviews.db                  <span class="cm"># Base SQLite — 2 082 avis</span>
+├── scraping/spiders/
+│   ├── tripadvisor_spider.py       <span class="cm"># Spider TripAdvisor Selenium</span>
+│   ├── amazon_spider.py            <span class="cm"># Spider Amazon Selenium</span>
+│   └── extract_card.py             <span class="cm"># Outil de diagnostic HTML</span>
+├── data/raw/
+│   ├── tripadvisor_reviews.json    <span class="cm"># 1 917 avis</span>
+│   ├── amazon_reviews.json         <span class="cm"># 148 avis</span>
+│   ├── googlemaps_reviews.json     <span class="cm"># 7 avis</span>
+│   └── jumia_reviews.json          <span class="cm"># 10 avis</span>
+├── export_tripadvisor.py           <span class="cm"># Export SQLite → JSON</span>
+├── export_amazon.py                <span class="cm"># Export SQLite → JSON</span>
+├── import_reviews.py               <span class="cm"># Import JSON → SQLite (universel)</span>
+├── fix_amazon_product_names.py     <span class="cm"># Correction noms de produits</span>
+├── clean_amazon_duplicates.py      <span class="cm"># Nettoyage des doublons</span>
+└── .env                            <span class="cm"># Variables d'environnement</span>
+    </pre>
+  </div>
+
+  <h3>Schéma de la table reviews</h3>
+  <div class="table-wrap reveal">
+    <table class="data-table">
+      <thead><tr><th>Champ</th><th>Type</th><th>Description</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>String(36)</td><td>UUID unique auto-généré</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>product_name</code></td><td>String(300)</td><td>Nom du restaurant ou produit</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>platform</code></td><td>Enum</td><td>tripadvisor / googlemaps / jumia_sn / amazon</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>rating</code></td><td>Float</td><td>Note de 1.0 à 5.0</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>comment_text</code></td><td>Text</td><td>Texte complet de l'avis</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>comment_date</code></td><td>String(50)</td><td>Date brute de l'avis</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>author</code></td><td>String(150)</td><td>Nom de l'auteur</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>language</code></td><td>String(10)</td><td>Langue détectée</td><td><span class="badge badge-amber">Phase 2</span></td></tr>
+        <tr><td><code>sentiment</code></td><td>Enum</td><td>positive / negative / neutral</td><td><span class="badge badge-amber">Phase 2</span></td></tr>
+        <tr><td><code>sentiment_score</code></td><td>Float</td><td>Score de confiance NLP</td><td><span class="badge badge-amber">Phase 2</span></td></tr>
+        <tr><td><code>keywords</code></td><td>JSON</td><td>Mots-clés extraits</td><td><span class="badge badge-amber">Phase 2</span></td></tr>
+        <tr><td><code>url_source</code></td><td>String(500)</td><td>URL d'origine</td><td><span class="badge badge-green">Actif</span></td></tr>
+        <tr><td><code>scraped_at</code></td><td>DateTime</td><td>Horodatage du scraping</td><td><span class="badge badge-green">Auto</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-blue reveal">
+    <div class="callout-icon">ℹ️</div>
+    <p><strong>Flexibilité :</strong> Le fichier <code>db.py</code> lit la variable <code>DATABASE_URL</code> depuis <code>.env</code>. Par défaut SQLite, mais il suffit de changer cette variable pour basculer vers PostgreSQL ou MySQL sans modifier le code applicatif.</p>
+  </div>
+</section>
+
+<!-- ── 03 TRIPADVISOR ──────────────────────────────────────────── -->
+<section class="body-section" id="tripadvisor">
+  <div class="section-header reveal">
+    <div class="section-number">03</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Scraping</div>
+      <h2>Spider TripAdvisor — Restaurants Dakar</h2>
+    </div>
+  </div>
+
+  <p>Le spider principal utilise Selenium avec Chrome contrôlé en mode furtif pour collecter les avis des restaurants de Dakar, page par page, restaurant par restaurant.</p>
+
+  <div class="timeline reveal">
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Étape 1</div><h4>Chrome en mode furtif</h4><p>Chrome lancé avec suppression des flags d'automatisation, user-agent Chrome 144 réaliste, désactivation de <code>navigator.webdriver</code> via JavaScript, et profil temporaire dans <code>C:\Temp\chrome_selenium</code>.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Étape 2</div><h4>Collecte des URLs (35 restaurants)</h4><p>Ouverture de la page liste TripAdvisor Dakar, acceptation automatique des cookies RGPD, extraction de tous les liens <code>Restaurant_Review</code>. URLs normalisées (suppression du fragment <code>#REVIEWS</code>) pour éviter les doublons.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Étape 3</div><h4>Extraction des données par restaurant</h4><p>Pour chaque restaurant : nom (premier H1 non vide), cartes d'avis (<code>div[data-automation='reviewCard']</code>), note (système multi-fallback), texte complet (clic sur "Plus" si tronqué), date et auteur. Chaque avis inséré avec commit immédiat.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Étape 4</div><h4>Pagination automatique</h4><p>10 avis par page. L'URL suivante est construite par injection de l'offset (<code>-or10-</code>, <code>-or20-</code>...). 3 conditions d'arrêt indépendantes : page vide, total déclaré atteint, ou dernière page (&lt;10 avis). Limite de sécurité : 50 pages max.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Étape 5</div><h4>Export JSON (1 917 avis)</h4><p>Script <code>export_tripadvisor.py</code> exporte tous les avis de SQLite vers <code>tripadvisor_reviews.json</code> au format unifié, identique aux autres plateformes.</p></div>
+  </div>
+
+  <h3>Extraction de la note — Système multi-stratégie</h3>
+  <p>TripAdvisor stocke les notes dans des SVG avec des classes CSS dynamiques changeant à chaque déploiement. Quatre stratégies de fallback sont appliquées en cascade :</p>
+
+  <div class="code-block reveal">
+    <div class="code-label">tripadvisor_spider.py — _extract_rating()</div>
+    <pre>
+<span class="cm"># Stratégie 1 : aria-label sur SVG → "4 sur 5 bulles"  ← le plus fiable</span>
+svg = card.find_element(By.CSS_SELECTOR, <span class="str">"svg[aria-label]"</span>)
+aria = svg.get_attribute(<span class="str">"aria-label"</span>)
+<span class="kw">return</span> float(aria.split()[<span class="num">0</span>].replace(<span class="str">","</span>, <span class="str">"."</span>))
+
+<span class="cm"># Stratégie 2 : balise &lt;title&gt; dans n'importe quel SVG</span>
+<span class="kw">if</span> <span class="str">"sur"</span> <span class="kw">in</span> title_text: <span class="kw">return</span> float(title_text.split()[<span class="num">0</span>])
+
+<span class="cm"># Stratégie 3 : attribut data-rating ou data-value</span>
+val = elem.get_attribute(<span class="str">"data-rating"</span>)
+
+<span class="cm"># Stratégie 4 : lecture du DOM via JavaScript</span>
+result = driver.execute_script(
+    <span class="str">"return arguments[0].querySelector('svg title').textContent"</span>, card
+)
+    </pre>
+  </div>
+</section>
+
+<!-- ── 04 PROBLÈMES ───────────────────────────────────────────── -->
+<section class="body-section" id="problemes">
+  <div class="section-header reveal">
+    <div class="section-number">04</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Débogage</div>
+      <h2>Problèmes rencontrés & solutions</h2>
+    </div>
+  </div>
+
+  <p>Sept problèmes distincts ont été identifiés et résolus lors du développement et de l'exécution du spider TripAdvisor.</p>
+
+  <div class="prob-grid">
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #1</div><h4>Spider non trouvé par Scrapy</h4><p><code>KeyError: 'Spider not found: tripadvisor'</code>. TripAdvisor charge ses avis en JavaScript dynamique — Scrapy seul ne peut pas les voir.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>Migration vers Selenium pur</h4><p>Abandon de Scrapy. Utilisation de Selenium + Chrome complet qui exécute le JavaScript comme un vrai navigateur.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #2</div><h4>Notes toutes à 0.0⭐</h4><p>Sélecteur <code>svg.evwcZ</code> ne retournait rien — les classes CSS de TripAdvisor sont générées dynamiquement et changent à chaque déploiement.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>Sélecteur d'attribut + 4 fallbacks</h4><p>Remplacement par <code>svg[aria-label]</code>, attribut sémantique stable. Ajout de 3 stratégies de fallback pour résister aux futurs changements.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #3</div><h4>URLs dupliquées dans la liste</h4><p>La page liste renvoyait des liens avec et sans fragment <code>#REVIEWS</code>, causant le scraping en double des mêmes restaurants.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>Normalisation avant déduplication</h4><p>Méthode <code>_normalize_url()</code> : <code>href.split("#")[0]</code> avant ajout au set <code>seen</code>.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #4</div><h4>Erreur SQLite : unable to open database file</h4><p>En lançant depuis <code>scraping/spiders/</code>, SQLite cherchait <code>database/reviews.db</code> dans ce sous-dossier plutôt qu'à la racine du projet.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>Fix du répertoire de travail (CWD)</h4><p>Ajout de <code>os.chdir()</code> en tête de chaque script pour forcer le CWD à la racine, quel que soit l'endroit de lancement.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #5</div><h4>Boucle de pagination infinie</h4><p>Le bouton "Page suivante" était détecté comme toujours actif — les sélecteurs CSS ne matchaient pas. Le spider chargeait des pages indéfiniment.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>3 conditions d'arrêt indépendantes</h4><p>Arrêt si : page vide (0 avis), total déclaré atteint, ou &lt;10 avis sur la page. Filet de sécurité absolu : 50 pages max par restaurant.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #6</div><h4>Blocage anti-bot TripAdvisor</h4><p>Après scraping intensif (30+ restaurants, des centaines de pages), TripAdvisor a bloqué les requêtes. Pages vides, titre générique, aucun élément trouvé.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>Reset du profil Chrome</h4><p>Suppression de <code>C:\Temp\chrome_selenium</code> entre les sessions. Pauses aléatoires maintenues : 4–8s entre restaurants, 3–6s entre pages.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="prob-box"><div class="box-tag">Problème #7</div><h4>Classes CSS du H1 changées</h4><p>Après reset du profil Chrome, les classes du titre H1 avaient changé. Le sélecteur codé en dur <code>h1.biGQs._P.fiohW.eIegw</code> ne matchait plus.</p></div>
+      <div class="sol-box"><div class="box-tag">Solution</div><h4>Sélecteur agnostique aux classes</h4><p>Récupération de tous les <code>&lt;h1&gt;</code> de la page, sélection du premier avec texte non vide. Résistant à tous les changements CSS futurs.</p></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── 05 AMAZON ──────────────────────────────────────────────── -->
+<section class="body-section" id="amazon">
+  <div class="section-header reveal">
+    <div class="section-number">05</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Scraping</div>
+      <h2>Spider Amazon.fr</h2>
+    </div>
+  </div>
+
+  <p>Le spider Amazon scrape les pages d'avis de produits spécifiques à partir de leurs URLs. Trois produits ont été ciblés : un smartphone, une bouilloire et un support de casque.</p>
+
+  <div class="step-list reveal">
+    <div class="step-item"><div class="step-num">1</div><div class="step-body"><h4>Construction de l'URL d'avis</h4><p>Extraction de l'ASIN depuis l'URL produit (<code>/dp/ASIN/</code>) et construction de l'URL dédiée aux avis : <code>amazon.fr/product-reviews/ASIN/?sortBy=recent</code>.</p></div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-body"><h4>Chargement avec attente longue</h4><p>Attente fixe de 12 secondes et scroll pour forcer le chargement complet. Détection automatique de CAPTCHA avec pause manuelle si nécessaire.</p></div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-body"><h4>Extraction des avis</h4><p>Sélecteur <code>[data-hook='review']</code> pour les cartes. Note via <code>i[data-hook='review-star-rating']</code>. Texte = titre + " : " + corps de l'avis.</p></div></div>
+    <div class="step-item"><div class="step-num">4</div><div class="step-body"><h4>Pagination (max 5 pages)</h4><p>Clic sur <code>li.a-last a</code> pour accéder à la page suivante. Arrêt automatique si le bouton est absent ou si la page est vide.</p></div></div>
+    <div class="step-item"><div class="step-num">5</div><div class="step-body"><h4>Résultat</h4><p>148 avis collectés sur 3 produits : <strong>Apple iPhone 17 256 Go</strong>, <strong>Philips Bouilloire HD9350/90</strong> et <strong>Alyvisun Support Casque</strong>.</p></div></div>
+  </div>
+
+  <h3>Problème : noms de produits incorrects</h3>
+  <p>
+    Le sélecteur <code>_get_product_name()</code> ne trouvait pas le nom du produit et récupérait
+    à la place le titre du premier avis ou un mot isolé du contenu :
+    <strong class="hl3">"socle"</strong>, <strong class="hl3">"Bonne bouilloire"</strong>,
+    <strong class="hl3">"C'est un téléphone super je recommande vivement."</strong>
+  </p>
+
+  <div class="callout callout-amber reveal">
+    <div class="callout-icon">⚠️</div>
+    <p>Le spider <code>amazon_spider.py</code> n'ayant pas été modifié (contrainte du projet), la correction a été appliquée en post-traitement sur le fichier JSON exporté.</p>
+  </div>
+
+  <div class="code-block reveal">
+    <div class="code-label">fix_amazon_product_names.py — Mapping de correction</div>
+    <pre>
+PRODUCT_NAMES = {
+    <span class="cm"># Ancien nom erroné  →  Vrai nom du produit</span>
+    <span class="str">"socle"</span>:
+        <span class="str">"Alyvisun Support Casque Bureau [Base Lestée et Hauteur Supérieure]..."</span>,
+
+    <span class="str">"Bonne bouilloire"</span>:
+        <span class="str">"Philips Collection Daily Bouilloire HD9350/90 — 1.7L Inox"</span>,
+
+    <span class="str">"C'est un téléphone super je recommande vivement."</span>:
+        <span class="str">"Apple iPhone 17 256 Go : Écran 6,3 pouces ProMotion, Puce A19..."</span>,
+
+    <span class="cm"># Fallback si correction partielle lors d'une exécution précédente</span>
+    <span class="str">"Produit Amazon (ASIN: B0FQHLZZLF)"</span>:
+        <span class="str">"Apple iPhone 17 256 Go : Écran 6,3 pouces ProMotion, Puce A19..."</span>,
+}
+    </pre>
+  </div>
+</section>
+
+<!-- ── 06 CONSOLIDATION ───────────────────────────────────────── -->
+<section class="body-section" id="consolidation">
+  <div class="section-header reveal">
+    <div class="section-number">06</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Intégration</div>
+      <h2>Consolidation de toutes les sources</h2>
+    </div>
+  </div>
+
+  <p>Une fois les spiders exécutés et les JSON des équipes partenaires reçus, quatre étapes ont permis de consolider l'ensemble des données dans une base SQLite unique et propre.</p>
+
+  <div class="timeline reveal">
+
+    <div class="tl-item"><div class="tl-dot"></div>
+      <div class="tl-tag">Étape 1 — Export des données scrapées</div>
+      <h4>SQLite → JSON</h4>
+      <p>Les avis collectés via Selenium (TripAdvisor et Amazon) étaient en base SQLite. Deux scripts les exportent en JSON pour uniformiser le format avec les fichiers reçus des autres équipes (Google Maps, Jumia).</p>
+    </div>
+
+    <div class="tl-item"><div class="tl-dot"></div>
+      <div class="tl-tag">Étape 2 — Correction de l'encodage</div>
+      <h4>Réparation du latin-1 / UTF-8</h4>
+      <p>Les fichiers Jumia et Google Maps contenaient des caractères corrompus : <code>Ã©</code> au lieu de <code>é</code>, <code>â€™</code> au lieu de <code>'</code>. Le script d'import corrige automatiquement via <code>text.encode('latin-1').decode('utf-8')</code>.</p>
+    </div>
+
+    <div class="tl-item"><div class="tl-dot"></div>
+      <div class="tl-tag">Étape 3 — Import unifié</div>
+      <h4>JSON → SQLite (toutes plateformes)</h4>
+      <p>Le script <code>import_reviews.py</code> accepte plusieurs fichiers JSON en argument. Il valide la plateforme, corrige l'encodage, vérifie les doublons (auteur + produit + date + plateforme) et insère les nouveaux avis.</p>
+    </div>
+
+    <div class="tl-item"><div class="tl-dot"></div>
+      <div class="tl-tag">Étape 4 — Nettoyage des doublons Amazon</div>
+      <h4>Suppression des anciens enregistrements</h4>
+      <p>Le spider Amazon avait inséré 149 avis avec les anciens noms incorrects. Après import du JSON corrigé, la base contenait 297 avis Amazon (doublons). Le script <code>clean_amazon_duplicates.py</code> a supprimé les 149 enregistrements avec anciens noms, ramenant à 148 avis propres.</p>
+    </div>
+
+  </div>
+
+  <div class="callout callout-green reveal">
+    <div class="callout-icon">✅</div>
+    <p><strong>Résultat :</strong> 149 doublons supprimés (49 "socle" + 50 "Bonne bouilloire" + 50 "C'est un téléphone..."). Base finale : <strong>2 082 avis</strong> propres sur 4 plateformes.</p>
+  </div>
+</section>
+
+<!-- ── 07 RÉSULTATS ───────────────────────────────────────────── -->
+<section class="body-section" id="resultats">
+  <div class="section-header reveal">
+    <div class="section-number">07</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Bilan</div>
+      <h2>Résultats finaux</h2>
+    </div>
+  </div>
+
+  <h3>Données par plateforme</h3>
+  <div class="table-wrap reveal">
+    <table class="data-table">
+      <thead><tr><th>Plateforme</th><th>Produits / Lieux</th><th>Avis</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr><td><strong>TripAdvisor</strong></td><td>6 restaurants à Dakar</td><td>1 917</td><td><span class="badge badge-green">Scrapé</span></td></tr>
+        <tr><td><strong>Amazon</strong></td><td>iPhone 17, Bouilloire Philips, Support Casque</td><td>148</td><td><span class="badge badge-green">Scrapé</span></td></tr>
+        <tr><td><strong>Google Maps</strong></td><td>Restaurant Le Lagon 1, Hôtel Terrou-Bi</td><td>7</td><td><span class="badge badge-blue">JSON importé</span></td></tr>
+        <tr><td><strong>Jumia SN</strong></td><td>Écouteurs sport, Clé USB 64Go, TV Astech 43"</td><td>10</td><td><span class="badge badge-blue">JSON importé</span></td></tr>
+        <tr><td><strong>Total</strong></td><td></td><td><strong>2 082</strong></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Détail TripAdvisor par restaurant</h3>
+  <div class="table-wrap reveal">
+    <table class="data-table">
+      <thead><tr><th>Restaurant</th><th>Avis collectés</th><th>Pages scrapées (estimé)</th></tr></thead>
+      <tbody>
+        <tr><td>Restaurant Lagon 1</td><td>750</td><td>~75</td></tr>
+        <tr><td>Le Ngor Pieds dans l'eau</td><td>437</td><td>~44</td></tr>
+        <tr><td>Chez Loutcha</td><td>368</td><td>~37</td></tr>
+        <tr><td>La Terrasse</td><td>204</td><td>~21</td></tr>
+        <tr><td>Reine Margarita</td><td>98</td><td>~10</td></tr>
+        <tr><td>Restaurant Terrasse Farid</td><td>60</td><td>~6</td></tr>
+        <tr><td><em>Restaurants 7 à 35</em></td><td>0 (blocage IP)</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-blue reveal">
+    <div class="callout-icon">ℹ️</div>
+    <p>Les restaurants 7 à 35 n'ont pas été scrapés suite au blocage IP déclenché par TripAdvisor après une session intensive. Les 1 917 avis disponibles restent largement suffisants pour l'analyse NLP.</p>
+  </div>
+
+  <h3>Erreurs console Chrome — À ignorer</h3>
+  <div class="table-wrap reveal">
+    <table class="data-table">
+      <thead><tr><th>Message</th><th>Cause</th><th>Impact sur le scraping</th></tr></thead>
+      <tbody>
+        <tr><td><code>ssl_client_socket_impl.cc handshake failed</code></td><td>Services tiers (pub/tracking) inaccessibles depuis Dakar</td><td><span class="badge badge-green">Aucun</span></td></tr>
+        <tr><td><code>registration_request.cc DEPRECATED_ENDPOINT</code></td><td>Endpoint Google GCM obsolète appelé par Chrome</td><td><span class="badge badge-green">Aucun</span></td></tr>
+        <tr><td><code>stun_port.cc Binding error: Unauthorized</code></td><td>Tentative WebRTC bloquée par le réseau</td><td><span class="badge badge-green">Aucun</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── 08 SCRIPTS ─────────────────────────────────────────────── -->
+<section class="body-section">
+  <div class="section-header reveal">
+    <div class="section-number">08</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Référence</div>
+      <h2>Scripts utilitaires & commandes</h2>
+    </div>
+  </div>
+
+  <div class="card-grid reveal">
+    <div class="card"><div class="card-icon">🔬</div><h4>extract_card.py</h4><p>Diagnostic : ouvre une page TripAdvisor, teste les sélecteurs CSS, sauvegarde le HTML complet. Utilisé pour identifier les bons sélecteurs après blocage.</p></div>
+    <div class="card"><div class="card-icon">📤</div><h4>export_tripadvisor.py</h4><p>Exporte les avis TripAdvisor de SQLite vers JSON. Résumé par restaurant. Fix CWD intégré.</p></div>
+    <div class="card"><div class="card-icon">📤</div><h4>export_amazon.py</h4><p>Exporte les avis Amazon de SQLite vers JSON. Même format que TripAdvisor. Résumé par produit.</p></div>
+    <div class="card"><div class="card-icon">📥</div><h4>import_reviews.py</h4><p>Import universel : plusieurs fichiers JSON, toutes plateformes, correction encodage automatique, déduplication quadruple.</p></div>
+    <div class="card"><div class="card-icon">✏️</div><h4>fix_amazon_product_names.py</h4><p>Corrige les noms de produits incorrects dans amazon_reviews.json via un mapping ASIN → vrai nom. Exécuté deux fois (iPhone ajouté en second passage).</p></div>
+    <div class="card"><div class="card-icon">🧹</div><h4>clean_amazon_duplicates.py</h4><p>Supprime les enregistrements Amazon avec anciens noms incorrects. A supprimé 149 doublons pour revenir à 148 avis propres.</p></div>
+  </div>
+
+  <h3>Référence des commandes PowerShell</h3>
+  <div class="code-block reveal">
+    <div class="code-label">Commandes essentielles — à lancer depuis la racine du projet</div>
+    <pre>
+<span class="cm"># ── Spiders ──────────────────────────────────────────────────────────</span>
+python scraping/spiders/tripadvisor_spider.py
+python scraping/spiders/amazon_spider.py
+
+<span class="cm"># ── Diagnostic (quand les sélecteurs ne fonctionnent plus) ───────────</span>
+python scraping/spiders/extract_card.py
+
+<span class="cm"># ── Export SQLite → JSON ─────────────────────────────────────────────</span>
+python export_tripadvisor.py
+python export_amazon.py
+
+<span class="cm"># ── Import JSON → SQLite ─────────────────────────────────────────────</span>
+python import_reviews.py <span class="str">"data\raw\amazon_reviews.json"</span> \
+                         <span class="str">"data\raw\googlemaps_reviews.json"</span> \
+                         <span class="str">"data\raw\jumia_reviews.json"</span>
+
+<span class="cm"># ── Corrections post-scraping ─────────────────────────────────────────</span>
+python fix_amazon_product_names.py
+python clean_amazon_duplicates.py
+
+<span class="cm"># ── Débloquer TripAdvisor (reset profil Chrome) ───────────────────────</span>
+Remove-Item -Recurse -Force <span class="str">"C:\Temp\chrome_selenium"</span>
+
+<span class="cm"># ── Vérifier l'état de la base ────────────────────────────────────────</span>
+python -c <span class="str">"
+import os; os.chdir('.')
+from database.db import SessionLocal
+from database.schema import Review
+db = SessionLocal()
+print(f'Total : {db.query(Review).count()} avis')
+db.close()
+"</span>
+    </pre>
+  </div>
+</section>
+
+<!-- ── 09 SUITE ────────────────────────────────────────────────── -->
+<section class="body-section" id="suite" style="border-bottom:none;">
+  <div class="section-header reveal">
+    <div class="section-number">09</div>
+    <div class="section-titles">
+      <div class="section-eyebrow">Roadmap</div>
+      <h2>Prochaines étapes</h2>
+    </div>
+  </div>
+
+  <div class="timeline reveal">
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Phase 2 — Court terme</div><h4>Analyse de sentiments (NLP)</h4><p>Appliquer un modèle sur <code>comment_text</code>. Remplir les colonnes <code>sentiment</code>, <code>sentiment_score</code>, <code>language</code> et <code>keywords</code> déjà prévues dans le schéma. Candidats : CamemBERT, TextBlob, ou API Anthropic.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Phase 3 — Moyen terme</div><h4>Dashboard de visualisation</h4><p>Interface web pour explorer les résultats : distribution des notes, évolution temporelle des sentiments, nuage de mots-clés, comparaison entre restaurants et plateformes.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Phase 4 — Long terme</div><h4>Compléter le scraping TripAdvisor</h4><p>Relancer le spider pour les restaurants 7 à 35. Sessions espacées de 4–6h, reset du profil Chrome entre chaque session, VPN si nécessaire.</p></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-tag">Phase 5 — Long terme</div><h4>Migration PostgreSQL</h4><p>Pour un accès multi-utilisateurs ou un déploiement en production, changer <code>DATABASE_URL</code> dans <code>.env</code>. Aucune modification de code nécessaire grâce à SQLAlchemy.</p></div>
+  </div>
+</section>
+
+</div><!-- /page -->
+
+<footer>
+  Projet Review Analyzer &nbsp;·&nbsp; Dakar, Sénégal &nbsp;·&nbsp; Février 2026 &nbsp;·&nbsp; 2 082 avis collectés sur 4 plateformes
+</footer>
+
+<script>
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 60);
+      }
+    });
+  }, { threshold: 0.06 });
+  reveals.forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

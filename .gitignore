@@ -1,0 +1,8 @@
+@"
+venv/
+__pycache__/
+*.pyc
+.env
+database/reviews.db
+C:\Temp\chrome_selenium
+"@ | Out-File -Encoding utf8 .gitignore
