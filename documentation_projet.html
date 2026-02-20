@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — Review Analyzer & Projet Webscraping</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:       #1a1a2e;
+    --ink-mid:   #3d3d5c;
+    --ink-faint: #8888aa;
+    --paper:     #fafaf8;
+    --paper-2:   #f2f2ee;
+    --paper-3:   #e8e8e2;
+    --teal:      #0f766e;
+    --teal-mid:  #14b8a6;
+    --teal-pale: #f0fdfa;
+    --teal-light:#ccfbf1;
+    --amber:     #b45309;
+    --amber-pale:#fffbeb;
+    --red:       #be123c;
+    --red-pale:  #fff1f2;
+    --rule:      #ddddd5;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  /* ── SIDEBAR NAV ──────────────────────────────────────────── */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 240px; background: var(--ink);
+    display: flex; flex-direction: column;
+    z-index: 200; overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 1.8rem 1.5rem 1.2rem;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .sidebar-logo .logo-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--teal-mid);
+  }
+  .sidebar-logo .logo-sub {
+    font-size: .75rem; color: rgba(255,255,255,.35); margin-top: .2rem;
+  }
+  .sidebar-nav { padding: 1rem 0; flex: 1; }
+  .nav-group { margin-bottom: .5rem; }
+  .nav-group-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .63rem; letter-spacing: .15em; text-transform: uppercase;
+    color: rgba(255,255,255,.3); padding: .6rem 1.5rem .3rem;
+  }
+  .nav-link {
+    display: block; padding: .45rem 1.5rem .45rem 2rem;
+    font-size: .83rem; color: rgba(255,255,255,.55);
+    text-decoration: none; border-left: 2px solid transparent;
+    transition: all .2s;
+  }
+  .nav-link:hover { color: white; border-color: var(--teal-mid); background: rgba(255,255,255,.04); }
+  .nav-link.active { color: var(--teal-mid); border-color: var(--teal-mid); }
+  .sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+  .gh-link {
+    display: flex; align-items: center; gap: .6rem;
+    font-size: .78rem; color: rgba(255,255,255,.4);
+    text-decoration: none; transition: color .2s;
+  }
+  .gh-link:hover { color: rgba(255,255,255,.8); }
+
+  /* ── MAIN ─────────────────────────────────────────────────── */
+  .main { margin-left: 240px; }
+
+  /* ── HERO ─────────────────────────────────────────────────── */
+  .hero {
+    background: var(--ink);
+    padding: 5rem 5vw 4rem;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 50%;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent, transparent 20px,
+      rgba(255,255,255,.015) 20px, rgba(255,255,255,.015) 21px
+    );
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .7rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--teal-mid); margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: .8rem;
+  }
+  .hero-eyebrow::before { content: ''; display: block; width: 24px; height: 1px; background: var(--teal-mid); }
+  .hero h1 {
+    font-family: 'Crimson Pro', serif;
+    font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 700;
+    color: white; line-height: 1.1; max-width: 700px; margin-bottom: 1.2rem;
+  }
+  .hero h1 em { font-style: italic; color: var(--teal-mid); }
+  .hero-desc { font-size: 1rem; color: rgba(255,255,255,.5); max-width: 580px; font-weight: 300; margin-bottom: 2.5rem; }
+
+  .repo-pills { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .repo-pill {
+    display: flex; align-items: center; gap: .6rem;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 6px; padding: .6rem 1.1rem;
+    text-decoration: none; color: rgba(255,255,255,.7); font-size: .85rem;
+    transition: all .2s;
+  }
+  .repo-pill:hover { background: rgba(20,184,166,.12); border-color: var(--teal-mid); color: white; }
+  .repo-pill span { font-family: 'IBM Plex Mono', monospace; font-size: .75rem; color: var(--teal-mid); }
+
+  /* ── KPI BAR ──────────────────────────────────────────────── */
+  .kpi-bar {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    border-bottom: 1px solid var(--rule);
+    background: white;
+  }
+  .kpi {
+    padding: 1.6rem 1.8rem;
+    border-right: 1px solid var(--rule);
+  }
+  .kpi:last-child { border-right: none; }
+  .kpi-n {
+    font-family: 'Crimson Pro', serif;
+    font-size: 2.2rem; font-weight: 700; color: var(--teal);
+    line-height: 1;
+  }
+  .kpi-l { font-size: .75rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .07em; margin-top: .3rem; }
+  @media(max-width:900px){ .kpi-bar{grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:600px){ .kpi-bar{grid-template-columns:1fr 1fr;} }
+
+  /* ── PAGE BODY ────────────────────────────────────────────── */
+  .content { max-width: 860px; padding: 0 5vw; }
+
+  section.doc-section { padding: 4rem 0; border-bottom: 1px solid var(--rule); }
+  section.doc-section:last-child { border-bottom: none; }
+
+  /* ── SECTION HEADER ───────────────────────────────────────── */
+  .doc-section > .sec-head { margin-bottom: 2rem; }
+  .sec-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .67rem; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--teal); margin-bottom: .5rem;
+    display: flex; align-items: center; gap: .6rem;
+  }
+  .sec-tag::before { content: ''; display: block; width: 16px; height: 1px; background: var(--teal); }
+  h2 {
+    font-family: 'Crimson Pro', serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 700;
+    color: var(--ink); line-height: 1.2;
+  }
+  h3 {
+    font-family: 'Crimson Pro', serif;
+    font-size: 1.25rem; font-weight: 600; color: var(--teal);
+    margin: 2.2rem 0 .8rem;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  p { margin-bottom: 1rem; color: var(--ink-mid); font-size: .95rem; }
+
+  /* ── CARDS ────────────────────────────────────────────────── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .card {
+    background: white; border: 1px solid var(--rule); border-radius: 8px;
+    padding: 1.4rem; border-top: 3px solid var(--teal);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.07); transform: translateY(-2px); }
+  .c-icon { font-size: 1.5rem; margin-bottom: .7rem; }
+  .card h4 { font-family: 'Crimson Pro', serif; font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: .3rem; }
+  .card p { font-size: .83rem; color: var(--ink-faint); margin: 0; }
+
+  /* ── CODE ─────────────────────────────────────────────────── */
+  .code-wrap { margin: 1.4rem 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule); }
+  .code-top { background: var(--ink); padding: .6rem 1.2rem; display: flex; align-items: center; justify-content: space-between; }
+  .code-fname { font-family: 'IBM Plex Mono', monospace; font-size: .72rem; color: rgba(255,255,255,.5); }
+  .code-dots { display: flex; gap: .4rem; }
+  .code-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.15); }
+  .code-body { background: #0f111a; padding: 1.3rem 1.5rem; overflow-x: auto; }
+  .code-body pre { font-family: 'IBM Plex Mono', monospace; font-size: .82rem; line-height: 1.75; color: #c9d1e0; }
+  .kw{color:#bb86fc} .str{color:#a8d8a8} .cm{color:#505a70;font-style:italic} .fn{color:#82aaff} .num{color:#f78c6c} .cls{color:#ffcb6b}
+
+  /* ── FILE TREE ────────────────────────────────────────────── */
+  .file-tree { background: white; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; margin: 1.4rem 0; }
+  .file-tree-head { background: var(--paper-2); padding: .7rem 1.2rem; border-bottom: 1px solid var(--rule); display: flex; align-items: center; gap: .6rem; }
+  .file-tree-head span { font-family: 'IBM Plex Mono', monospace; font-size: .75rem; color: var(--ink-mid); }
+  .file-tree-body { padding: 1rem 1.2rem; font-family: 'IBM Plex Mono', monospace; font-size: .8rem; line-height: 2; color: var(--ink-mid); }
+  .ft-dir { color: var(--teal); font-weight: 500; }
+  .ft-cm { color: var(--ink-faint); font-style: italic; }
+  .ft-new { color: var(--amber); }
+
+  /* ── TABLES ───────────────────────────────────────────────── */
+  .tbl-wrap { overflow-x: auto; margin: 1.4rem 0; border-radius: 8px; border: 1px solid var(--rule); }
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  thead { background: var(--ink); }
+  th { color: white; padding: .75rem 1rem; text-align: left; font-weight: 500; font-size: .78rem; letter-spacing: .04em; }
+  td { padding: .75rem 1rem; border-bottom: 1px solid var(--rule); color: var(--ink-mid); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) td { background: var(--paper); }
+  tbody tr:hover td { background: var(--teal-pale); }
+
+  /* ── BADGES ───────────────────────────────────────────────── */
+  .badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: .67rem; font-weight: 500; padding: .15rem .55rem; border-radius: 4px; letter-spacing: .04em; }
+  .b-green  { background: var(--teal-light); color: var(--teal); }
+  .b-amber  { background: #fef3c7; color: var(--amber); }
+  .b-red    { background: #ffe4e6; color: var(--red); }
+  .b-gray   { background: var(--paper-3); color: var(--ink-faint); }
+
+  /* ── CALLOUTS ─────────────────────────────────────────────── */
+  .callout { border-radius: 6px; padding: 1.1rem 1.4rem; margin: 1.4rem 0; border-left: 3px solid; display: flex; gap: .8rem; }
+  .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: .15rem; }
+  .callout p { margin: 0; font-size: .88rem; }
+  .c-teal  { background: var(--teal-pale); border-color: var(--teal); }
+  .c-amber { background: var(--amber-pale); border-color: var(--amber); }
+  .c-red   { background: var(--red-pale); border-color: var(--red); }
+
+  /* ── PROB/SOL ─────────────────────────────────────────────── */
+  .prob-grid { display: flex; flex-direction: column; gap: 1rem; margin: 1.4rem 0; }
+  .prob-item { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media(max-width:650px){ .prob-item{grid-template-columns:1fr;} }
+  .pbox, .sbox { border-radius: 6px; padding: 1.2rem; border: 1px solid; }
+  .pbox { background: var(--red-pale); border-color: #fecdd3; }
+  .sbox { background: var(--teal-pale); border-color: var(--teal-light); }
+  .box-tag { font-family: 'IBM Plex Mono', monospace; font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; margin-bottom: .5rem; display: flex; align-items: center; gap: .4rem; }
+  .pbox .box-tag { color: var(--red); }
+  .sbox .box-tag { color: var(--teal); }
+  .box-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: block; }
+  .pbox h4, .sbox h4 { font-family: 'Crimson Pro', serif; font-size: .95rem; font-weight: 600; margin-bottom: .3rem; }
+  .pbox p, .sbox p { font-size: .83rem; color: var(--ink-mid); margin: 0; }
+
+  /* ── TIMELINE ─────────────────────────────────────────────── */
+  .timeline { padding-left: 1.8rem; position: relative; margin: 1.4rem 0; }
+  .timeline::before { content: ''; position: absolute; left: 0; top: .5rem; bottom: .5rem; width: 2px; background: linear-gradient(to bottom, var(--teal), var(--rule)); }
+  .tl { position: relative; margin-bottom: 2rem; }
+  .tl:last-child { margin-bottom: 0; }
+  .tl::before { content: ''; position: absolute; left: -1.9rem; top: .4rem; width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid white; box-shadow: 0 0 0 2px var(--teal); }
+  .tl-tag { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: var(--teal); letter-spacing: .1em; text-transform: uppercase; margin-bottom: .3rem; }
+  .tl h4 { font-family: 'Crimson Pro', serif; font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: .25rem; }
+  .tl p { font-size: .88rem; color: var(--ink-faint); margin: 0; }
+
+  /* ── PIPELINE ─────────────────────────────────────────────── */
+  .pipeline { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: 1.4rem 0; }
+  .pip { background: white; border: 1px solid var(--rule); border-radius: 6px; padding: .7rem 1rem; text-align: center; min-width: 100px; }
+  .pip .p-icon { font-size: 1.3rem; }
+  .pip .p-label { font-family: 'IBM Plex Mono', monospace; font-size: .63rem; color: var(--ink-mid); text-transform: uppercase; line-height: 1.4; margin-top: .2rem; }
+  .pip-arrow { color: var(--rule); font-size: 1.2rem; flex-shrink: 0; }
+
+  /* ── REVEAL ───────────────────────────────────────────────── */
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.v { opacity: 1; transform: none; }
+
+  code { font-family: 'IBM Plex Mono', monospace; font-size: .82em; background: var(--paper-2); padding: .1rem .4rem; border-radius: 3px; color: var(--teal); }
+  strong { color: var(--ink); font-weight: 600; }
+  a.ext { color: var(--teal); text-decoration: none; border-bottom: 1px solid var(--teal-light); transition: border-color .2s; }
+  a.ext:hover { border-color: var(--teal); }
+
+  /* ── FOOTER ───────────────────────────────────────────────── */
+  footer { background: var(--ink); color: rgba(255,255,255,.3); padding: 2rem 5vw; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: .75rem; letter-spacing: .06em; }
+
+  @media(max-width:768px){
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">Review Analyzer</div>
+    <div class="logo-sub">Documentation v1.0</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-label">Vue d'ensemble</div>
+      <a href="#intro" class="nav-link">Introduction</a>
+      <a href="#repos" class="nav-link">Les deux dépôts</a>
+      <a href="#architecture" class="nav-link">Architecture</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Webscraping</div>
+      <a href="#tripadvisor" class="nav-link">Spider TripAdvisor</a>
+      <a href="#amazon" class="nav-link">Spider Amazon</a>
+      <a href="#problemes" class="nav-link">Problèmes & Solutions</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Pipeline données</div>
+      <a href="#consolidation" class="nav-link">Consolidation</a>
+      <a href="#nlp" class="nav-link">Analyse NLP</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Référence</div>
+      <a href="#scripts" class="nav-link">Scripts & Commandes</a>
+      <a href="#resultats" class="nav-link">Résultats</a>
+      <a href="#suite" class="nav-link">Roadmap</a>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <a href="https://github.com/ndaosaer/Review_analyser" class="gh-link" target="_blank">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      Review_analyser
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Documentation Technique</div>
+  <h1>Projet <em>Review Analyzer</em><br>& Webscraping</h1>
+  <p class="hero-desc">Pipeline complet de collecte, analyse et visualisation d'avis clients — TripAdvisor, Amazon, Google Maps et Jumia — développé dans le cadre d'un projet d'équipe à Dakar, Sénégal.</p>
+  <div class="repo-pills">
+    <a href="https://github.com/ndaosaer/Review_analyser" class="repo-pill" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span>github /</span> Review_analyser
+    </a>
+    <a href="https://github.com/ndaosaer/Projet_webscrapping" class="repo-pill" target="_blank">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      <span>github /</span> Projet_webscrapping
+    </a>
+  </div>
+</div>
+
+<!-- KPI BAR -->
+<div class="kpi-bar">
+  <div class="kpi"><div class="kpi-n">2 082</div><div class="kpi-l">Avis collectés</div></div>
+  <div class="kpi"><div class="kpi-n">4</div><div class="kpi-l">Plateformes</div></div>
+  <div class="kpi"><div class="kpi-n">1 917</div><div class="kpi-l">Avis TripAdvisor</div></div>
+  <div class="kpi"><div class="kpi-n">2</div><div class="kpi-l">Dépôts GitHub</div></div>
+  <div class="kpi"><div class="kpi-n">Python</div><div class="kpi-l">+ Flutter/Dart</div></div>
+</div>
+
+<div class="content" style="padding-top:1rem">
+
+<!-- ── INTRO ──────────────────────────────────────────────────── -->
+<section class="doc-section" id="intro">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Introduction</div>
+    <h2>À propos du projet</h2>
+  </div>
+
+  <p>Ce projet a pour objectif de construire un <strong>pipeline complet d'analyse des avis clients en ligne</strong>, depuis la collecte automatisée (webscraping) jusqu'à l'analyse de sentiments et la visualisation. Il cible principalement les <strong>restaurants de Dakar, Sénégal</strong> via TripAdvisor et Google Maps, avec une extension aux produits e-commerce via Jumia et Amazon.fr.</p>
+
+  <p>Le projet est développé en équipe et réparti sur deux dépôts GitHub complémentaires : l'un dédié à l'analyse NLP et la base de données, l'autre au webscraping et à l'application mobile Flutter.</p>
+
+  <div class="card-grid reveal">
+    <div class="card"><div class="c-icon">🎯</div><h4>Objectif principal</h4><p>Collecter et analyser automatiquement les avis clients pour produire des insights sur la réputation des établissements.</p></div>
+    <div class="card"><div class="c-icon">🤝</div><h4>Projet d'équipe</h4><p>Chaque membre scrape une plateforme différente. Les données sont centralisées dans un format JSON unifié.</p></div>
+    <div class="card"><div class="c-icon">🧠</div><h4>NLP intégré</h4><p>Analyse de sentiments, extraction de mots-clés et classification des avis via un pipeline NLP Python.</p></div>
+    <div class="card"><div class="c-icon">📱</div><h4>Application Flutter</h4><p>Une application mobile Dart/Flutter (<code>mainbase.dart</code>) pour consommer et visualiser les données.</p></div>
+  </div>
+</section>
+
+<!-- ── LES DEUX REPOS ──────────────────────────────────────────── -->
+<section class="doc-section" id="repos">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Dépôts GitHub</div>
+    <h2>Les deux repositories</h2>
+  </div>
+
+  <h3>Review_analyser — Le cœur analytique</h3>
+  <p>Ce dépôt contient le moteur du projet : la base de données, les spiders de scraping, le pipeline NLP et l'API.</p>
+
+  <div class="file-tree reveal">
+    <div class="file-tree-head">
+      <span>📁 ndaosaer/Review_analyser</span>
+    </div>
+    <div class="file-tree-body">
+<span class="ft-dir">api/</span>                         <span class="ft-cm"># API REST pour exposer les données</span>
+<span class="ft-dir">database/</span>
+├── db.py                    <span class="ft-cm"># Connexion SQLAlchemy + init_db()</span>
+├── schema.py                <span class="ft-cm"># Modèle Review (ORM unifié)</span>
+└── reviews.db               <span class="ft-cm"># Base SQLite — 2 082 avis</span>
+<span class="ft-dir">nlp/</span>                         <span class="ft-cm"># Modules d'analyse de sentiments</span>
+<span class="ft-dir">scraping/</span>
+└── spiders/
+    ├── tripadvisor_spider.py
+    └── amazon_spider.py
+<span class="ft-dir">tests/</span>                       <span class="ft-cm"># Tests unitaires</span>
+clean_amazon_duplicates.py   <span class="ft-cm"># Nettoyage doublons</span>
+export_amazon.py             <span class="ft-cm"># Export SQLite → JSON</span>
+export_tripadvisor.py        <span class="ft-cm"># Export SQLite → JSON</span>
+extract_card.py              <span class="ft-cm"># Outil de diagnostic HTML</span>
+fix_amazon_product_names.py  <span class="ft-cm"># Correction noms produits</span>
+import_reviews.py            <span class="ft-cm"># Import JSON → SQLite (universel)</span>
+<span class="ft-new">nlp_pipeline.py</span>              <span class="ft-cm"># Pipeline NLP principal</span>
+<span class="ft-new">evaluate_nlp.py</span>              <span class="ft-cm"># Évaluation du modèle NLP</span>
+requirements.txt             <span class="ft-cm"># Dépendances Python</span>
+    </div>
+  </div>
+
+  <h3>Projet_webscrapping — L'application & les données brutes</h3>
+  <p>Ce dépôt contient les données brutes, les rapports générés et l'application mobile Flutter qui consomme les données.</p>
+
+  <div class="file-tree reveal">
+    <div class="file-tree-head">
+      <span>📁 ndaosaer/Projet_webscrapping</span>
+    </div>
+    <div class="file-tree-body">
+<span class="ft-dir">review_analyzer/</span>             <span class="ft-cm"># Miroir du dossier principal</span>
+<span class="ft-dir">review_app/</span>                  <span class="ft-cm"># Application Flutter</span>
+<span class="ft-new">mainbase.dart</span>                <span class="ft-cm"># Point d'entrée Flutter/Dart</span>
+rapport_session.html         <span class="ft-cm"># Rapport de session scraping</span>
+rapport_webscraping.html     <span class="ft-cm"># Rapport technique complet</span>
+recap_projet.html            <span class="ft-cm"># Récapitulatif du projet</span>
+.gitignore
+    </div>
+  </div>
+
+  <div class="callout c-teal reveal">
+    <div class="callout-icon">💡</div>
+    <p><strong>Relation entre les deux dépôts :</strong> <code>Review_analyser</code> est le moteur back-end (scraping + NLP + API). <code>Projet_webscrapping</code> est le conteneur projet qui inclut l'app Flutter et les rapports. Les données circulent de l'un vers l'autre via les fichiers JSON exportés.</p>
+  </div>
+</section>
+
+<!-- ── ARCHITECTURE ───────────────────────────────────────────── -->
+<section class="doc-section" id="architecture">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Structure</div>
+    <h2>Architecture du système</h2>
+  </div>
+
+  <div class="pipeline reveal">
+    <div class="pip"><div class="p-icon">🌐</div><div class="p-label">Sources<br>TripAdvisor<br>Amazon<br>Google Maps<br>Jumia</div></div>
+    <div class="pip-arrow">→</div>
+    <div class="pip"><div class="p-icon">🕷️</div><div class="p-label">Spiders<br>Selenium<br>Python</div></div>
+    <div class="pip-arrow">→</div>
+    <div class="pip"><div class="p-icon">📄</div><div class="p-label">Fichiers<br>JSON<br>Unifiés</div></div>
+    <div class="pip-arrow">→</div>
+    <div class="pip"><div class="p-icon">🗄️</div><div class="p-label">SQLite<br>SQLAlchemy<br>ORM</div></div>
+    <div class="pip-arrow">→</div>
+    <div class="pip"><div class="p-icon">🧠</div><div class="p-label">NLP<br>Sentiment<br>Keywords</div></div>
+    <div class="pip-arrow">→</div>
+    <div class="pip"><div class="p-icon">🌐</div><div class="p-label">API REST<br>Flask/Fast<br>API</div></div>
+    <div class="pip-arrow">→</div>
+    <div class="pip"><div class="p-icon">📱</div><div class="p-label">App<br>Flutter<br>Dart</div></div>
+  </div>
+
+  <h3>Le schéma de données unifié</h3>
+  <p>Tous les avis, quelle que soit leur plateforme d'origine, partagent le même schéma dans la table <code>reviews</code> :</p>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Champ</th><th>Type</th><th>Description</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>String(36)</td><td>UUID unique auto-généré</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>product_name</code></td><td>String(300)</td><td>Nom du restaurant ou produit</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>platform</code></td><td>Enum</td><td>tripadvisor / googlemaps / jumia_sn / amazon</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>rating</code></td><td>Float</td><td>Note de 1.0 à 5.0</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>comment_text</code></td><td>Text</td><td>Texte complet de l'avis</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>comment_date</code></td><td>String(50)</td><td>Date brute de l'avis</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>author</code></td><td>String(150)</td><td>Nom de l'auteur</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>language</code></td><td>String(10)</td><td>Langue détectée automatiquement</td><td><span class="badge b-amber">Phase 2</span></td></tr>
+        <tr><td><code>sentiment</code></td><td>Enum</td><td>positive / negative / neutral</td><td><span class="badge b-amber">Phase 2</span></td></tr>
+        <tr><td><code>sentiment_score</code></td><td>Float</td><td>Score de confiance du modèle NLP</td><td><span class="badge b-amber">Phase 2</span></td></tr>
+        <tr><td><code>keywords</code></td><td>JSON</td><td>Mots-clés extraits de l'avis</td><td><span class="badge b-amber">Phase 2</span></td></tr>
+        <tr><td><code>url_source</code></td><td>String(500)</td><td>URL d'origine de l'avis</td><td><span class="badge b-green">Actif</span></td></tr>
+        <tr><td><code>scraped_at</code></td><td>DateTime</td><td>Horodatage du scraping</td><td><span class="badge b-green">Auto</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Installation & prérequis</h3>
+
+  <div class="code-wrap reveal">
+    <div class="code-top"><div class="code-fname">requirements.txt</div><div class="code-dots"><span></span><span></span><span></span></div></div>
+    <div class="code-body"><pre>
+selenium>=4.0
+sqlalchemy>=2.0
+python-dotenv
+scrapy
+transformers        <span class="cm"># NLP — BERT / CamemBERT</span>
+torch
+langdetect
+flask               <span class="cm"># API REST</span>
+    </pre></div>
+  </div>
+
+  <div class="code-wrap reveal">
+    <div class="code-top"><div class="code-fname">Installation</div><div class="code-dots"><span></span><span></span><span></span></div></div>
+    <div class="code-body"><pre>
+<span class="cm"># Cloner le repo principal</span>
+git clone https://github.com/ndaosaer/Review_analyser.git
+cd Review_analyser
+
+<span class="cm"># Créer et activer l'environnement virtuel</span>
+python -m venv venv
+venv\Scripts\activate          <span class="cm"># Windows</span>
+source venv/bin/activate       <span class="cm"># Linux/Mac</span>
+
+<span class="cm"># Installer les dépendances</span>
+pip install -r requirements.txt
+
+<span class="cm"># Initialiser la base de données</span>
+python -c <span class="str">"from database.db import init_db; init_db()"</span>
+    </pre></div>
+  </div>
+</section>
+
+<!-- ── TRIPADVISOR ────────────────────────────────────────────── -->
+<section class="doc-section" id="tripadvisor">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Scraping</div>
+    <h2>Spider TripAdvisor</h2>
+  </div>
+
+  <p>Le spider principal utilise Selenium avec Chrome en mode furtif pour collecter les avis de restaurants sur TripAdvisor. Il scrape automatiquement toutes les pages d'avis pour chaque restaurant de la liste Dakar.</p>
+
+  <div class="timeline reveal">
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 1</div><h4>Chrome en mode furtif</h4><p>Chrome lancé avec suppression des flags d'automatisation, user-agent Chrome 144 réaliste, désactivation de <code>navigator.webdriver</code> via JavaScript et profil temporaire dans <code>C:\Temp\chrome_selenium</code>.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 2</div><h4>Collecte des URLs (35 restaurants)</h4><p>Ouverture de la page liste TripAdvisor Dakar, acceptation automatique des cookies RGPD, extraction de tous les liens <code>Restaurant_Review</code>. URLs normalisées (suppression du fragment <code>#REVIEWS</code>) avant déduplication.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 3</div><h4>Extraction par restaurant</h4><p>Pour chaque restaurant : nom via premier H1 non vide, cartes via <code>div[data-automation='reviewCard']</code>, note via système multi-fallback, texte complet (clic sur "Plus" si tronqué), date et auteur.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 4</div><h4>Pagination automatique</h4><p>10 avis par page. URL suivante construite par injection de l'offset (<code>-or10-</code>, <code>-or20-</code>...). Trois conditions d'arrêt : page vide, total atteint, moins de 10 avis. Limite : 50 pages max.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Résultat</div><h4>1 917 avis — 6 restaurants</h4><p>Restaurant Lagon 1 (750), Le Ngor (437), Chez Loutcha (368), La Terrasse (204), Reine Margarita (98), Terrasse Farid (60).</p></div>
+  </div>
+
+  <h3>Extraction de la note — 4 stratégies de fallback</h3>
+  <div class="code-wrap reveal">
+    <div class="code-top"><div class="code-fname">tripadvisor_spider.py — _extract_rating()</div><div class="code-dots"><span></span><span></span><span></span></div></div>
+    <div class="code-body"><pre>
+<span class="cm"># Stratégie 1 : aria-label → "4 sur 5 bulles"  ← plus fiable</span>
+svg = card.find_element(By.CSS_SELECTOR, <span class="str">"svg[aria-label]"</span>)
+<span class="kw">return</span> float(svg.get_attribute(<span class="str">"aria-label"</span>).split()[<span class="num">0</span>].replace(<span class="str">","</span>,<span class="str">"."</span>))
+
+<span class="cm"># Stratégie 2 : balise &lt;title&gt; dans SVG</span>
+<span class="kw">if</span> <span class="str">"sur"</span> <span class="kw">in</span> title_text: <span class="kw">return</span> float(title_text.split()[<span class="num">0</span>])
+
+<span class="cm"># Stratégie 3 : attribut data-rating</span>
+val = elem.get_attribute(<span class="str">"data-rating"</span>)
+
+<span class="cm"># Stratégie 4 : JavaScript DOM query</span>
+result = driver.execute_script(
+    <span class="str">"return arguments[0].querySelector('svg title').textContent"</span>, card
+)
+    </pre></div>
+  </div>
+</section>
+
+<!-- ── AMAZON ─────────────────────────────────────────────────── -->
+<section class="doc-section" id="amazon">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Scraping</div>
+    <h2>Spider Amazon.fr</h2>
+  </div>
+
+  <p>Le spider Amazon scrape les avis de produits spécifiques à partir de leurs URLs. Il gère le chargement JavaScript, la détection de CAPTCHA et la pagination jusqu'à 5 pages par produit.</p>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>ASIN</th><th>Produit</th><th>Avis</th></tr></thead>
+      <tbody>
+        <tr><td><code>B0FQHLZZLF</code></td><td>Apple iPhone 17 256 Go — Puce A19, Écran 6.3" ProMotion</td><td>50</td></tr>
+        <tr><td><code>B075FC8ZJ3</code></td><td>Philips Bouilloire Électrique HD9350/90 — 1.7L Inox</td><td>50</td></tr>
+        <tr><td><code>B0C1VQJZQD</code></td><td>Alyvisun Support Casque Bureau — Base Lestée</td><td>49</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout c-amber reveal">
+    <div class="callout-icon">⚠️</div>
+    <p><strong>Problème rencontré :</strong> Le sélecteur <code>_get_product_name()</code> récupérait le texte des avis au lieu du nom du produit. Les 3 produits s'appelaient <em>"socle"</em>, <em>"Bonne bouilloire"</em> et <em>"C'est un téléphone super..."</em>. Corrigé en post-traitement via <code>fix_amazon_product_names.py</code> sans modifier le spider original.</p>
+  </div>
+</section>
+
+<!-- ── PROBLÈMES ──────────────────────────────────────────────── -->
+<section class="doc-section" id="problemes">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Débogage</div>
+    <h2>Problèmes rencontrés & solutions</h2>
+  </div>
+
+  <div class="prob-grid">
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #1</div><h4>Spider Scrapy non trouvé</h4><p>TripAdvisor charge les avis en JavaScript dynamique — Scrapy seul ne peut pas les voir.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>Migration vers Selenium pur</h4><p>Chrome complet via Selenium exécute le JavaScript comme un vrai navigateur.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #2</div><h4>Notes toutes à 0.0⭐</h4><p>Sélecteur CSS <code>svg.evwcZ</code> ne matchait plus — classes CSS dynamiques qui changent à chaque déploiement.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>4 stratégies de fallback</h4><p>Sélecteur d'attribut <code>svg[aria-label]</code> + 3 autres méthodes de récupération de la note.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #3</div><h4>URLs dupliquées</h4><p>Liens avec et sans fragment <code>#REVIEWS</code> causaient le double scraping des mêmes restaurants.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>Normalisation des URLs</h4><p><code>href.split("#")[0]</code> avant ajout au set de déduplication.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #4</div><h4>SQLite unable to open database</h4><p>Lancement depuis un sous-dossier — SQLite cherchait <code>database/reviews.db</code> dans le mauvais répertoire.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>Fix du CWD</h4><p><code>os.chdir(os.path.dirname(os.path.abspath(__file__)))</code> en tête de chaque script.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #5</div><h4>Boucle de pagination infinie</h4><p>Bouton "Page suivante" toujours détecté comme actif — sélecteurs CSS incorrects.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>3 conditions d'arrêt</h4><p>Page vide + total atteint + moins de 10 avis. Limite absolue : 50 pages max.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #6</div><h4>Blocage anti-bot TripAdvisor</h4><p>Après scraping intensif, TripAdvisor a bloqué les requêtes — pages vides, 0 éléments trouvés.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>Reset profil Chrome</h4><p><code>Remove-Item -Recurse -Force "C:\Temp\chrome_selenium"</code> + pauses aléatoires entre sessions.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #7</div><h4>Classes CSS du H1 changées</h4><p>Après reset du profil, le sélecteur <code>h1.biGQs._P.fiohW.eIegw</code> ne matchait plus rien.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>Sélecteur agnostique</h4><p>Tous les <code>&lt;h1&gt;</code> récupérés, premier avec texte non vide sélectionné — résistant aux changements CSS.</p></div>
+    </div>
+
+    <div class="prob-item reveal">
+      <div class="pbox"><div class="box-tag">Problème #8</div><h4>Encodage corrompu JSON</h4><p>Fichiers Jumia et Google Maps avec <code>Ã©</code> au lieu de <code>é</code> — confusion latin-1 / UTF-8.</p></div>
+      <div class="sbox"><div class="box-tag">Solution</div><h4>Correction automatique à l'import</h4><p><code>text.encode('latin-1').decode('utf-8')</code> dans <code>import_reviews.py</code>.</p></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── CONSOLIDATION ──────────────────────────────────────────── -->
+<section class="doc-section" id="consolidation">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Pipeline données</div>
+    <h2>Consolidation des sources</h2>
+  </div>
+
+  <p>Chaque membre de l'équipe scrape une plateforme différente et produit un fichier JSON. Ces fichiers sont ensuite consolidés dans la base SQLite partagée via un script d'import universel.</p>
+
+  <div class="timeline reveal">
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 1</div><h4>Export SQLite → JSON</h4><p>Les données TripAdvisor et Amazon scrapées via Selenium sont exportées en JSON : <code>python export_tripadvisor.py</code> et <code>python export_amazon.py</code>.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 2</div><h4>Correction encodage</h4><p>La fonction <code>fix_encoding()</code> dans <code>import_reviews.py</code> corrige automatiquement les fichiers Jumia et Google Maps avec caractères corrompus.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 3</div><h4>Import unifié</h4><p><code>import_reviews.py</code> accepte plusieurs fichiers JSON, valide la plateforme, évite les doublons (auteur + produit + date + plateforme) et insère dans SQLite.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Étape 4</div><h4>Nettoyage doublons Amazon</h4><p><code>clean_amazon_duplicates.py</code> a supprimé 149 enregistrements avec anciens noms incorrects, ramenant de 297 à 148 avis Amazon propres.</p></div>
+  </div>
+
+  <div class="code-wrap reveal">
+    <div class="code-top"><div class="code-fname">import_reviews.py — fix_encoding()</div><div class="code-dots"><span></span><span></span><span></span></div></div>
+    <div class="code-body"><pre>
+<span class="kw">def</span> <span class="fn">fix_encoding</span>(text: str) -> str:
+    <span class="cm">"""Corrige la corruption latin-1/UTF-8.
+    'Ã©' → 'é'  ·  'â€™' → '''  ·  'Ã¨' → 'è'"""</span>
+    <span class="kw">try</span>:
+        <span class="kw">return</span> text.encode(<span class="str">'latin-1'</span>).decode(<span class="str">'utf-8'</span>)
+    <span class="kw">except</span> (UnicodeDecodeError, UnicodeEncodeError):
+        <span class="kw">return</span> text  <span class="cm"># Déjà correct ou non récupérable</span>
+    </pre></div>
+  </div>
+</section>
+
+<!-- ── NLP ────────────────────────────────────────────────────── -->
+<section class="doc-section" id="nlp">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Analyse</div>
+    <h2>Pipeline NLP</h2>
+  </div>
+
+  <p>Le dépôt <code>Review_analyser</code> contient un pipeline NLP complet (<code>nlp_pipeline.py</code>, <code>nlp_pipeline1.py</code>) ainsi que des scripts d'évaluation (<code>evaluate_nlp.py</code>, <code>evaluate_nlp1.py</code>, <code>evaluate_nlp2.py</code>) pour mesurer la qualité des prédictions.</p>
+
+  <div class="card-grid reveal">
+    <div class="card"><div class="c-icon">🔍</div><h4>Détection de langue</h4><p>Identification automatique de la langue de chaque avis (français, anglais, wolof...) via <code>langdetect</code>.</p></div>
+    <div class="card"><div class="c-icon">❤️</div><h4>Analyse de sentiments</h4><p>Classification positive / négative / neutre via modèle BERT ou CamemBERT fine-tuné sur les avis francophones.</p></div>
+    <div class="card"><div class="c-icon">🏷️</div><h4>Extraction de mots-clés</h4><p>Identification des thèmes récurrents : service, cuisine, ambiance, prix, propreté, etc.</p></div>
+    <div class="card"><div class="c-icon">📊</div><h4>Évaluation du modèle</h4><p>Scripts d'évaluation avec métriques précision / rappel / F1-score pour valider la qualité des prédictions.</p></div>
+  </div>
+
+  <h3>Colonnes NLP dans la base de données</h3>
+  <p>Le schéma prévoit déjà les champs pour stocker les résultats NLP :</p>
+
+  <div class="code-wrap reveal">
+    <div class="code-top"><div class="code-fname">database/schema.py — Champs NLP</div><div class="code-dots"><span></span><span></span><span></span></div></div>
+    <div class="code-body"><pre>
+<span class="cm"># Ces colonnes sont remplies par nlp_pipeline.py</span>
+language       = Column(String(<span class="num">10</span>), nullable=<span class="kw">True</span>)   <span class="cm"># 'fr', 'en', 'wo'</span>
+sentiment      = Column(Enum(<span class="str">"positive"</span>, <span class="str">"negative"</span>, <span class="str">"neutral"</span>), nullable=<span class="kw">True</span>)
+sentiment_score = Column(Float, nullable=<span class="kw">True</span>)          <span class="cm"># 0.0 → 1.0</span>
+keywords       = Column(JSON, nullable=<span class="kw">True</span>)            <span class="cm"># ["service", "cuisine", ...]</span>
+    </pre></div>
+  </div>
+</section>
+
+<!-- ── SCRIPTS ────────────────────────────────────────────────── -->
+<section class="doc-section" id="scripts">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Référence</div>
+    <h2>Scripts & Commandes</h2>
+  </div>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Script</th><th>Rôle</th><th>Usage</th></tr></thead>
+      <tbody>
+        <tr><td><code>tripadvisor_spider.py</code></td><td>Spider TripAdvisor complet</td><td><code>python scraping/spiders/tripadvisor_spider.py</code></td></tr>
+        <tr><td><code>amazon_spider.py</code></td><td>Spider Amazon.fr</td><td><code>python scraping/spiders/amazon_spider.py</code></td></tr>
+        <tr><td><code>extract_card.py</code></td><td>Diagnostic HTML TripAdvisor</td><td><code>python extract_card.py</code></td></tr>
+        <tr><td><code>export_tripadvisor.py</code></td><td>Export SQLite → JSON TripAdvisor</td><td><code>python export_tripadvisor.py</code></td></tr>
+        <tr><td><code>export_amazon.py</code></td><td>Export SQLite → JSON Amazon</td><td><code>python export_amazon.py</code></td></tr>
+        <tr><td><code>import_reviews.py</code></td><td>Import JSON → SQLite (universel)</td><td><code>python import_reviews.py fichier1.json fichier2.json</code></td></tr>
+        <tr><td><code>fix_amazon_product_names.py</code></td><td>Correction noms produits Amazon</td><td><code>python fix_amazon_product_names.py</code></td></tr>
+        <tr><td><code>clean_amazon_duplicates.py</code></td><td>Suppression doublons Amazon</td><td><code>python clean_amazon_duplicates.py</code></td></tr>
+        <tr><td><code>nlp_pipeline.py</code></td><td>Pipeline NLP principal</td><td><code>python nlp_pipeline.py</code></td></tr>
+        <tr><td><code>evaluate_nlp.py</code></td><td>Évaluation qualité NLP</td><td><code>python evaluate_nlp.py</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Commandes PowerShell essentielles</h3>
+  <div class="code-wrap reveal">
+    <div class="code-top"><div class="code-fname">Référence rapide</div><div class="code-dots"><span></span><span></span><span></span></div></div>
+    <div class="code-body"><pre>
+<span class="cm"># ── Débloquer TripAdvisor (reset profil Chrome) ──────────────</span>
+Remove-Item -Recurse -Force <span class="str">"C:\Temp\chrome_selenium"</span>
+
+<span class="cm"># ── Import toutes plateformes depuis data/raw/ ───────────────</span>
+python import_reviews.py <span class="str">"data\raw\amazon_reviews.json"</span> \
+                         <span class="str">"data\raw\googlemaps_reviews.json"</span> \
+                         <span class="str">"data\raw\jumia_reviews.json"</span>
+
+<span class="cm"># ── Vérifier la base de données ──────────────────────────────</span>
+python -c <span class="str">"
+import os; os.chdir('.')
+from database.db import SessionLocal
+from database.schema import Review
+db = SessionLocal()
+total = db.query(Review).count()
+print(f'Total : {total} avis')
+for p in ['tripadvisor','amazon','googlemaps','jumia_sn']:
+    n = db.query(Review).filter(Review.platform==p).count()
+    if n: print(f'  {p}: {n}')
+db.close()
+"</span>
+
+<span class="cm"># ── Synchroniser GitHub ──────────────────────────────────────</span>
+git add .
+git commit -m <span class="str">"update"</span>
+git push origin main
+    </pre></div>
+  </div>
+</section>
+
+<!-- ── RÉSULTATS ──────────────────────────────────────────────── -->
+<section class="doc-section" id="resultats">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Bilan</div>
+    <h2>Résultats finaux</h2>
+  </div>
+
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Plateforme</th><th>Produits / Lieux</th><th>Avis</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr><td><strong>TripAdvisor</strong></td><td>6 restaurants à Dakar</td><td>1 917</td><td><span class="badge b-green">Scrapé ✓</span></td></tr>
+        <tr><td><strong>Amazon.fr</strong></td><td>iPhone 17, Bouilloire Philips, Support Casque</td><td>148</td><td><span class="badge b-green">Scrapé ✓</span></td></tr>
+        <tr><td><strong>Google Maps</strong></td><td>Le Lagon 1, Hôtel Terrou-Bi</td><td>7</td><td><span class="badge b-green">Importé ✓</span></td></tr>
+        <tr><td><strong>Jumia SN</strong></td><td>Écouteurs, Clé USB, TV Astech</td><td>10</td><td><span class="badge b-green">Importé ✓</span></td></tr>
+        <tr><td><strong>Total</strong></td><td></td><td><strong>2 082</strong></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Détail TripAdvisor par restaurant</h3>
+  <div class="tbl-wrap reveal">
+    <table>
+      <thead><tr><th>Restaurant</th><th>Avis</th><th>Pages</th></tr></thead>
+      <tbody>
+        <tr><td>Restaurant Lagon 1</td><td>750</td><td>~75</td></tr>
+        <tr><td>Le Ngor Pieds dans l'eau</td><td>437</td><td>~44</td></tr>
+        <tr><td>Chez Loutcha</td><td>368</td><td>~37</td></tr>
+        <tr><td>La Terrasse</td><td>204</td><td>~21</td></tr>
+        <tr><td>Reine Margarita</td><td>98</td><td>~10</td></tr>
+        <tr><td>Restaurant Terrasse Farid</td><td>60</td><td>~6</td></tr>
+        <tr><td><em>Restaurants 7 à 35</em></td><td>0</td><td>Blocage IP</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── ROADMAP ────────────────────────────────────────────────── -->
+<section class="doc-section" id="suite">
+  <div class="sec-head reveal">
+    <div class="sec-tag">Roadmap</div>
+    <h2>Prochaines étapes</h2>
+  </div>
+
+  <div class="timeline reveal">
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Phase 2 — En cours</div><h4>Finaliser le pipeline NLP</h4><p>Compléter <code>nlp_pipeline.py</code> pour remplir les colonnes <code>sentiment</code>, <code>sentiment_score</code>, <code>language</code> et <code>keywords</code> sur les 2 082 avis en base. Évaluer avec <code>evaluate_nlp.py</code>.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Phase 3</div><h4>API REST</h4><p>Finaliser le dossier <code>api/</code> pour exposer les données analysées via des endpoints REST — consommables par l'application Flutter.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Phase 4</div><h4>Application Flutter</h4><p>Connecter <code>mainbase.dart</code> à l'API pour afficher les avis, les sentiments et les statistiques par restaurant sur mobile.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Phase 5</div><h4>Compléter TripAdvisor</h4><p>Scraper les restaurants 7 à 35. Sessions espacées de 4–6h, reset du profil Chrome entre sessions, VPN si nécessaire.</p></div>
+    <div class="tl"><div class="tl-dot"></div><div class="tl-tag">Phase 6</div><h4>Migration PostgreSQL</h4><p>Pour un déploiement production ou accès multi-utilisateurs, changer <code>DATABASE_URL</code> dans <code>.env</code>. Aucune modification de code requise grâce à SQLAlchemy.</p></div>
+  </div>
+</section>
+
+</div><!-- /content -->
+
+<footer>
+  Documentation — Review Analyzer · ndaosaer · Dakar, Sénégal · Février 2026
+  &nbsp;·&nbsp;
+  <a href="https://github.com/ndaosaer/Review_analyser" style="color:rgba(255,255,255,.4)">Review_analyser</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/ndaosaer/Projet_webscrapping" style="color:rgba(255,255,255,.4)">Projet_webscrapping</a>
+</footer>
+
+</div><!-- /main -->
+
+<script>
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) setTimeout(() => e.target.classList.add('v'), i * 55);
+    });
+  }, { threshold: 0.07 });
+  reveals.forEach(el => obs.observe(el));
+
+  // Active nav link
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const links = document.querySelectorAll('.nav-link');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+    links.forEach(l => {
+      l.classList.remove('active');
+      if (l.getAttribute('href') === '#' + cur) l.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

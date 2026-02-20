@@ -4,7 +4,6 @@ import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/trending_screen.dart';
-import 'screens/comparison_screen.dart';
 import 'screens/reviews_screen.dart';
 
 void main() {
@@ -48,7 +47,6 @@ class _MainNavigatorState extends State<MainNavigator> {
     const HomeScreen(),
     const SearchScreen(),
     const TrendingScreen(),
-    const ComparisonScreen(),
     const ReviewsScreen(),
   ];
 
@@ -95,11 +93,6 @@ class _MainNavigatorState extends State<MainNavigator> {
             icon: Icon(Icons.trending_up_rounded),
             selectedIcon: Icon(Icons.trending_up),
             label: 'Trending',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.compare_arrows_rounded),
-            selectedIcon: Icon(Icons.compare_arrows),
-            label: 'Comparer',
           ),
           NavigationDestination(
             icon: Icon(Icons.list_alt),

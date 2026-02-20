@@ -98,24 +98,4 @@ class ApiService {
     }
     throw Exception('Erreur lors de la récupération des tendances');
   }
-
-  // ── Compare (nouveau) ─────────────────────────────────────────────
-  Future<Map<String, dynamic>> compareProducts({
-    required String productA,
-    required String productB,
-  }) async {
-    final uri = Uri.parse('$baseUrl/compare').replace(queryParameters: {
-      'product_a': productA,
-      'product_b': productB,
-    });
-    final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      return json.decode(utf8.decode(response.bodyBytes));
-    } else if (response.statusCode == 404) {
-      final error = json.decode(utf8.decode(response.bodyBytes));
-      throw Exception(error['detail'] ?? 'Produit introuvable');
-    }
-    throw Exception('Erreur lors de la comparaison');
-  }
 }
