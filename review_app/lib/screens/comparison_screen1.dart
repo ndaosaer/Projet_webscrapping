@@ -17,6 +17,88 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
   Map<String, dynamic>? _comparison;
   bool _loading = false;
   String? _error;
+  
+  List<String> _suggestionsA = [];
+  List<String> _suggestionsB = [];
+  bool _showSuggestionsA = false;
+  bool _showSuggestionsB = false;
+  Timer? _debounceA;
+  Timer? _debounceB;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllerA.addListener(() => _onSearchChanged('A'));
+    _controllerB.addListener(() => _onSearchChanged('B'));
+  }
+
+  @override
+  void dispose() {
+    _controllerA.dispose();
+    _controllerB.dispose();
+    _debounceA?.cancel();
+    _debounceB?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String field) {
+    final controller = field == 'A' ? _controllerA : _controllerB;
+    final debounce = field == 'A' ? _debounceA : _debounceB;
+    
+    if (debounce?.isActive ?? false) debounce!.cancel();
+    
+    final query = controller.text.trim();
+    
+    if (query.length < 2) {
+      setState(() {
+        if (field == 'A') {
+          _suggestionsA = [];
+          _showSuggestionsA = false;
+        } else {
+          _suggestionsB = [];
+          _showSuggestionsB = false;
+        }
+      });
+      return;
+    }
+
+    final newDebounce = Timer(const Duration(milliseconds: 300), () {
+      _fetchSuggestions(query, field);
+    });
+    
+    if (field == 'A') {
+      _debounceA = newDebounce;
+    } else {
+      _debounceB = newDebounce;
+    }
+  }
+
+  Future<void> _fetchSuggestions(String query, String field) async {
+    try {
+      final response = await _api.getSuggestions(query);
+      setState(() {
+        if (field == 'A') {
+          _suggestionsA = List<String>.from(response['suggestions'] ?? []);
+          _showSuggestionsA = _suggestionsA.isNotEmpty;
+        } else {
+          _suggestionsB = List<String>.from(response['suggestions'] ?? []);
+          _showSuggestionsB = _suggestionsB.isNotEmpty;
+        }
+      });
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  void _selectSuggestion(String suggestion, String field) {
+    if (field == 'A') {
+      _controllerA.text = suggestion;
+      setState(() => _showSuggestionsA = false);
+    } else {
+      _controllerB.text = suggestion;
+      setState(() => _showSuggestionsB = false);
+    }
+  }
 
   Future<void> _compare() async {
     final productA = _controllerA.text.trim();
@@ -130,26 +212,37 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _buildSearchField(
-                  controller: _controllerA,
-                  hint: 'Produit A',
-                  color: Theme.of(context).colorScheme.primary,
+                child: Column(
+                  children: [
+                    _buildSearchField(
+                      controller: _controllerA,
+                      hint: 'Produit A',
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    if (_showSuggestionsA) _buildSuggestions(_suggestionsA, 'A'),
+                  ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 child: Icon(
                   Icons.swap_horiz_rounded,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               Expanded(
-                child: _buildSearchField(
-                  controller: _controllerB,
-                  hint: 'Produit B',
-                  color: Theme.of(context).colorScheme.secondary,
+                child: Column(
+                  children: [
+                    _buildSearchField(
+                      controller: _controllerB,
+                      hint: 'Produit B',
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                    if (_showSuggestionsB) _buildSuggestions(_suggestionsB, 'B'),
+                  ],
                 ),
               ),
             ],
@@ -167,6 +260,48 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestions(List<String> suggestions, String field) {
+    final color = field == 'A'
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.secondary;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      constraints: const BoxConstraints(maxHeight: 200),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: suggestions.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            dense: true,
+            leading: Icon(
+              Icons.history_rounded,
+              size: 16,
+              color: color.withOpacity(0.6),
+            ),
+            title: Text(
+              suggestions[index],
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            onTap: () => _selectSuggestion(suggestions[index], field),
+          );
+        },
       ),
     );
   }

@@ -1,827 +1,344 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import '../services/api_service.dart';
+import '../glass_widgets.dart';
+import '../theme_helpers.dart';
+import '../ocean_colors.dart';
 
 class ComparisonScreen extends StatefulWidget {
   const ComparisonScreen({super.key});
-
   @override
   State<ComparisonScreen> createState() => _ComparisonScreenState();
 }
 
 class _ComparisonScreenState extends State<ComparisonScreen> {
-  final ApiService _api = ApiService();
-  final TextEditingController _controllerA = TextEditingController();
-  final TextEditingController _controllerB = TextEditingController();
-  
-  Map<String, dynamic>? _comparison;
+  final _api = ApiService();
+  final _ctA = TextEditingController();
+  final _ctB = TextEditingController();
+  Map<String, dynamic>? _result;
   bool _loading = false;
   String? _error;
-  
-  List<String> _suggestionsA = [];
-  List<String> _suggestionsB = [];
-  bool _showSuggestionsA = false;
-  bool _showSuggestionsB = false;
-  Timer? _debounceA;
-  Timer? _debounceB;
 
   @override
-  void initState() {
-    super.initState();
-    _controllerA.addListener(() => _onSearchChanged('A'));
-    _controllerB.addListener(() => _onSearchChanged('B'));
-  }
-
-  @override
-  void dispose() {
-    _controllerA.dispose();
-    _controllerB.dispose();
-    _debounceA?.cancel();
-    _debounceB?.cancel();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String field) {
-    final controller = field == 'A' ? _controllerA : _controllerB;
-    final debounce = field == 'A' ? _debounceA : _debounceB;
-    
-    if (debounce?.isActive ?? false) debounce!.cancel();
-    
-    final query = controller.text.trim();
-    
-    if (query.length < 2) {
-      setState(() {
-        if (field == 'A') {
-          _suggestionsA = [];
-          _showSuggestionsA = false;
-        } else {
-          _suggestionsB = [];
-          _showSuggestionsB = false;
-        }
-      });
-      return;
-    }
-
-    final newDebounce = Timer(const Duration(milliseconds: 300), () {
-      _fetchSuggestions(query, field);
-    });
-    
-    if (field == 'A') {
-      _debounceA = newDebounce;
-    } else {
-      _debounceB = newDebounce;
-    }
-  }
-
-  Future<void> _fetchSuggestions(String query, String field) async {
-    try {
-      final response = await _api.getSuggestions(query);
-      setState(() {
-        if (field == 'A') {
-          _suggestionsA = List<String>.from(response['suggestions'] ?? []);
-          _showSuggestionsA = _suggestionsA.isNotEmpty;
-        } else {
-          _suggestionsB = List<String>.from(response['suggestions'] ?? []);
-          _showSuggestionsB = _suggestionsB.isNotEmpty;
-        }
-      });
-    } catch (e) {
-      // Ignore
-    }
-  }
-
-  void _selectSuggestion(String suggestion, String field) {
-    if (field == 'A') {
-      _controllerA.text = suggestion;
-      setState(() => _showSuggestionsA = false);
-    } else {
-      _controllerB.text = suggestion;
-      setState(() => _showSuggestionsB = false);
-    }
-  }
+  void dispose() { _ctA.dispose(); _ctB.dispose(); super.dispose(); }
 
   Future<void> _compare() async {
-    final productA = _controllerA.text.trim();
-    final productB = _controllerB.text.trim();
-
-    if (productA.isEmpty || productB.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir les 2 champs')),
-      );
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+    final a = _ctA.text.trim(), b = _ctB.text.trim();
+    if (a.isEmpty || b.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    setState(() { _loading = true; _error = null; _result = null; });
     try {
-      final result = await _api.compareProducts(
-        productA: productA,
-        productB: productB,
-      );
-      setState(() {
-        _comparison = result;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
+      final r = await _api.compareProducts(productA: a, productB: b);
+      setState(() { _result = r; _loading = false; });
+    } catch (e) { setState(() { _error = e.toString(); _loading = false; }); }
   }
+
+  void _reset() { _ctA.clear(); _ctB.clear(); setState(() { _result = null; _error = null; }); }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildSearchInputs(),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                      ? _buildError()
-                      : _comparison != null
-                          ? _buildComparison()
-                          : _buildEmptyState(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.secondary.withOpacity(0.1),
-            Theme.of(context).colorScheme.primary.withOpacity(0.05),
-          ],
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
+    final th = ThemeHelper.of(context);
+    return GlassScaffold(body: SafeArea(child: ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      children: [
+        // Header
+        Row(children: [
+          Container(padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.15),
+              color: const Color(0xFF667eea).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF667eea).withOpacity(0.3))),
+            child: const Icon(Icons.compare_arrows_rounded,
+                color: Color(0xFF667eea), size: 18)),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Comparaison', style: TextStyle(
+                color: th.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Comparez 2 produits côte à côte',
+                style: TextStyle(color: th.textHint, fontSize: 12)),
+          ])),
+          if (_result != null) GestureDetector(onTap: _reset,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: th.cardBg, borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: th.cardBorder)),
+              child: Text('Réinitialiser',
+                  style: TextStyle(color: th.textMuted, fontSize: 11)))),
+        ]),
+        const SizedBox(height: 16),
+
+        // Inputs
+        Row(children: [
+          Expanded(child: _SearchInput(ctrl: _ctA, label: 'Produit A',
+              color: OceanColors.cyan, th: th,
+              onSubmit: () { if (_ctA.text.isNotEmpty && _ctB.text.isNotEmpty) _compare(); })),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: th.cardBg, borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: th.cardBorder)),
+              child: Text('VS', style: TextStyle(
+                  color: th.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)))),
+          Expanded(child: _SearchInput(ctrl: _ctB, label: 'Produit B',
+              color: const Color(0xFFf093fb), th: th,
+              onSubmit: () { if (_ctA.text.isNotEmpty && _ctB.text.isNotEmpty) _compare(); })),
+        ]),
+        const SizedBox(height: 12),
+
+        // Bouton comparer
+        GestureDetector(onTap: _compare,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            decoration: BoxDecoration(
+              color: OceanColors.cyan.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.compare_arrows_rounded,
-              color: Theme.of(context).colorScheme.secondary,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Comparaison',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                Text(
-                  'Compare 2 produits côte à côte',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchInputs() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildSearchField(
-                      controller: _controllerA,
-                      hint: 'Produit A',
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    if (_showSuggestionsA) _buildSuggestions(_suggestionsA, 'A'),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                child: Icon(
-                  Icons.swap_horiz_rounded,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildSearchField(
-                      controller: _controllerB,
-                      hint: 'Produit B',
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
-                    if (_showSuggestionsB) _buildSuggestions(_suggestionsB, 'B'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _compare,
-              icon: const Icon(Icons.search_rounded),
-              label: const Text('Comparer'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSuggestions(List<String> suggestions, String field) {
-    final color = field == 'A'
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.secondary;
-
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      constraints: const BoxConstraints(maxHeight: 200),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: suggestions.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            dense: true,
-            leading: Icon(
-              Icons.history_rounded,
-              size: 16,
-              color: color.withOpacity(0.6),
-            ),
-            title: Text(
-              suggestions[index],
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            onTap: () => _selectSuggestion(suggestions[index], field),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSearchField({
-    required TextEditingController controller,
-    required String hint,
-    required Color color,
-  }) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: color.withOpacity(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: color.withOpacity(0.3)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: color.withOpacity(0.3)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: color, width: 2),
-        ),
-      ),
-      onSubmitted: (_) => _compare(),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(48),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.compare_arrows_rounded,
-              size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Comparez 2 produits',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Entrez deux noms de produits pour voir lequel est le mieux noté',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(48),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 64,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Erreur',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComparison() {
-    final productA = _comparison!['product_a'];
-    final productB = _comparison!['product_b'];
-    final winner = _comparison!['winner'];
-    final diff = _comparison!['diff_percentage'];
-
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        if (winner != null) _buildVerdict(winner, diff),
-        const SizedBox(height: 24),
-        _buildScoreComparison(productA, productB),
+              border: Border.all(color: OceanColors.cyan.withOpacity(0.4))),
+            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.compare_arrows_rounded, color: OceanColors.cyan, size: 16),
+              SizedBox(width: 8),
+              Text('Comparer', style: TextStyle(
+                  color: OceanColors.cyan, fontSize: 14, fontWeight: FontWeight.bold)),
+            ]))),
         const SizedBox(height: 16),
-        _buildStatsComparison(productA, productB),
-        const SizedBox(height: 16),
-        _buildSentimentComparison(productA, productB),
-        const SizedBox(height: 16),
-        _buildKeywordsComparison(productA, productB),
-      ],
-    );
+
+        if (_loading) const SizedBox(height: 120, child: GlassLoading())
+        else if (_error != null) _buildError(th)
+        else if (_result != null) _buildResult(th)
+        else _buildHint(th),
+      ])));
   }
 
-  Widget _buildVerdict(String winner, double? diff) {
-    Color color;
-    IconData icon;
-    String title;
-    String message;
+  Widget _buildHint(ThemeHelper th) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: th.cardBg, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: th.cardBorder)),
+    child: Column(children: [
+      Icon(Icons.compare_rounded, size: 32, color: th.cardBorder),
+      const SizedBox(height: 10),
+      Text('Entrez 2 produits ou lieux\npour les comparer',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: th.textHint, fontSize: 13)),
+      const SizedBox(height: 12),
+      Wrap(spacing: 8, runSpacing: 6, alignment: WrapAlignment.center,
+        children: ['bouilloire', 'casque', 'Terrou-Bi', 'Le Lagon'].map((e) =>
+          GestureDetector(
+            onTap: () {
+              if (_ctA.text.isEmpty) _ctA.text = e;
+              else _ctB.text = e;
+              setState(() {});
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: OceanColors.cyan.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: OceanColors.cyan.withOpacity(0.3))),
+              child: Text(e, style: const TextStyle(
+                  color: OceanColors.cyan, fontSize: 11))))).toList()),
+    ]));
 
-    if (winner == 'tie') {
-      color = Theme.of(context).colorScheme.secondary;
-      icon = Icons.balance_rounded;
-      title = 'Match nul';
-      message = 'Les deux produits ont des scores similaires';
-    } else {
-      color = winner == 'A'
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.secondary;
-      icon = Icons.emoji_events_rounded;
-      final product = winner == 'A' ? _controllerA.text : _controllerB.text;
-      title = '$product gagne !';
-      message = '${diff?.toStringAsFixed(1)}% meilleur';
-    }
+  Widget _buildError(ThemeHelper th) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: OceanColors.negative.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: OceanColors.negative.withOpacity(0.3))),
+    child: Row(children: [
+      const Icon(Icons.error_outline_rounded, color: OceanColors.negative, size: 18),
+      const SizedBox(width: 10),
+      Expanded(child: Text(_error!,
+          style: const TextStyle(color: OceanColors.negative, fontSize: 12))),
+    ]));
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withOpacity(0.2),
-            color.withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.5), width: 2),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 40),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                if (diff != null)
-                  Text(
-                    message,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildResult(ThemeHelper th) {
+    final a      = _result!['product_a'] as Map<String, dynamic>;
+    final b      = _result!['product_b'] as Map<String, dynamic>;
+    final winner = _result!['winner'] as String?;
+    final diff   = _result!['diff_percentage'] as double?;
 
-  Widget _buildScoreComparison(Map productA, Map productB) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ScoreCard(
-            product: Map<String, dynamic>.from(productA),
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _ScoreCard(
-            product: Map<String, dynamic>.from(productB),
-            color: Theme.of(context).colorScheme.secondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsComparison(Map productA, Map productB) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildStatRow(
-              'Nombre d\'avis',
-              productA['total_reviews'].toString(),
-              productB['total_reviews'].toString(),
-            ),
-            const Divider(height: 24),
-            _buildStatRow(
-              'Note moyenne',
-              productA['avg_rating']?.toStringAsFixed(1) ?? '—',
-              productB['avg_rating']?.toStringAsFixed(1) ?? '—',
-            ),
-            const Divider(height: 24),
-            _buildStatRow(
-              'Plateformes',
-              (productA['platforms'] as List).length.toString(),
-              (productB['platforms'] as List).length.toString(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatRow(String label, String valueA, String valueB) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            valueA,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            valueB,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontWeight: FontWeight.bold,
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSentimentComparison(Map productA, Map productB) {
-    final sentA = productA['sentiment'];
-    final sentB = productB['sentiment'];
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Répartition des sentiments',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _SentimentBar(
-                    sentiment: sentA,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _SentimentBar(
-                    sentiment: sentB,
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildKeywordsComparison(Map productA, Map productB) {
-    final keywordsA = productA['top_keywords'] as List;
-    final keywordsB = productB['top_keywords'] as List;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Mots-clés principaux',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: keywordsA.map((kw) {
-                      return Chip(
-                        label: Text(
-                          kw.toString(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.1),
-                        side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.3),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: keywordsB.map((kw) {
-                      return Chip(
-                        label: Text(
-                          kw.toString(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .secondary
-                            .withOpacity(0.1),
-                        side: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .secondary
-                              .withOpacity(0.3),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ScoreCard extends StatelessWidget {
-  final Map<String, dynamic> product;
-  final Color color;
-
-  const _ScoreCard({required this.product, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final score = product['reputation_score'] ?? 0.0;
-    final name = product['product_name'] ?? '';
-
-    return Card(
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    return Column(children: [
+      if (winner != null && winner != 'tie') Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(0.15),
-              color.withOpacity(0.05),
-            ],
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(
-              name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 80,
-              height: 80,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CircularProgressIndicator(
-                    value: score / 100,
-                    strokeWidth: 8,
-                    backgroundColor: Colors.grey.withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                  ),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          score.toInt().toString(),
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                        Text(
-                          '%',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: color,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+          color: OceanColors.gold.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: OceanColors.gold.withOpacity(0.3))),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Text('🏆', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Text(
+            '${winner == "A" ? (a['product_name'] ?? "A") : (b['product_name'] ?? "B")} '
+            'gagne de ${diff?.toStringAsFixed(1)}%',
+            style: const TextStyle(
+                color: OceanColors.gold, fontSize: 12, fontWeight: FontWeight.bold)),
+        ])),
+      if (winner == 'tie') Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: OceanColors.cyan.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: OceanColors.cyan.withOpacity(0.3))),
+        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Text('🤝', style: TextStyle(fontSize: 16)),
+          SizedBox(width: 8),
+          Text('Résultats très proches !', style: TextStyle(
+              color: OceanColors.cyan, fontSize: 12, fontWeight: FontWeight.bold)),
+        ])),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: _ProductCard(data: a, color: OceanColors.cyan,
+            isWinner: winner == 'A', th: th)),
+        const SizedBox(width: 10),
+        Expanded(child: _ProductCard(data: b, color: const Color(0xFFf093fb),
+            isWinner: winner == 'B', th: th)),
+      ]),
+      const SizedBox(height: 12),
+      _CompareTable(a: a, b: b, th: th),
+    ]);
   }
 }
 
-class _SentimentBar extends StatelessWidget {
-  final Map<String, dynamic> sentiment;
+class _SearchInput extends StatelessWidget {
+  final TextEditingController ctrl;
+  final String label;
   final Color color;
+  final ThemeHelper th;
+  final VoidCallback onSubmit;
+  const _SearchInput({required this.ctrl, required this.label,
+      required this.color, required this.th, required this.onSubmit});
 
-  const _SentimentBar({required this.sentiment, required this.color});
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: th.cardBg, borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: color.withOpacity(0.4))),
+    child: TextField(controller: ctrl,
+      style: TextStyle(color: th.textPrimary, fontSize: 12),
+      decoration: InputDecoration(
+        hintText: label,
+        hintStyle: TextStyle(color: color.withOpacity(0.7), fontSize: 12),
+        prefixIcon: Container(margin: const EdgeInsets.all(10),
+          width: 6, height: 6,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        prefixIconConstraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+      onSubmitted: (_) => onSubmit()));
+}
+
+class _ProductCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final Color color;
+  final bool isWinner;
+  final ThemeHelper th;
+  const _ProductCard({required this.data, required this.color,
+      required this.isWinner, required this.th});
 
   @override
   Widget build(BuildContext context) {
-    final positive = sentiment['positive'] ?? 0;
-    final negative = sentiment['negative'] ?? 0;
-    final neutral = sentiment['neutral'] ?? 0;
-    final total = positive + negative + neutral;
+    final name  = (data['product_name'] ?? '') as String;
+    final total = (data['total_reviews'] ?? 0) as int;
+    final avg   = data['avg_rating'] as double?;
+    final score = data['reputation_score'] as double?;
+    final sent  = (data['sentiment'] ?? {}) as Map;
+    final pos   = (sent['positive'] ?? 0) as int;
+    final neg   = (sent['negative'] ?? 0) as int;
+    final tot   = pos + neg + ((sent['neutral'] ?? 0) as int);
 
-    if (total == 0) return const SizedBox();
-
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Row(
-            children: [
-              if (positive > 0)
-                Expanded(
-                  flex: (positive / total * 100).round(),
-                  child: Container(
-                    height: 32,
-                    color: Theme.of(context).colorScheme.tertiary,
-                  ),
-                ),
-              if (negative > 0)
-                Expanded(
-                  flex: (negative / total * 100).round(),
-                  child: Container(
-                    height: 32,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-              if (neutral > 0)
-                Expanded(
-                  flex: (neutral / total * 100).round(),
-                  child: Container(
-                    height: 32,
-                    color: color.withOpacity(0.5),
-                  ),
-                ),
-            ],
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(isWinner ? 0.15 : 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: color.withOpacity(isWinner ? 0.5 : 0.25),
+            width: isWinner ? 1.5 : 1)),
+      child: Column(children: [
+        if (isWinner) Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: OceanColors.gold.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10)),
+          child: const Text('🏆 Gagnant', style: TextStyle(
+              color: OceanColors.gold, fontSize: 9, fontWeight: FontWeight.bold))),
+        Text(name, style: TextStyle(
+            color: th.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+            maxLines: 2, textAlign: TextAlign.center),
+        const SizedBox(height: 10),
+        if (score != null) ...[
+          Text('${score.toInt()}%', style: TextStyle(
+              color: color, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text('réputation', style: TextStyle(
+              color: color.withOpacity(0.7), fontSize: 9)),
+        ],
         const SizedBox(height: 8),
-        Text(
-          '$positive · $negative · $neutral',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
+        if (avg != null) Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.star_rounded, size: 10, color: OceanColors.gold),
+          const SizedBox(width: 2),
+          Text(avg.toStringAsFixed(1),
+              style: const TextStyle(color: OceanColors.gold, fontSize: 11)),
+        ]),
+        const SizedBox(height: 4),
+        Text('$total avis', style: TextStyle(color: th.textHint, fontSize: 10)),
+        if (tot > 0) ...[
+          const SizedBox(height: 8),
+          ClipRRect(borderRadius: BorderRadius.circular(2), child: Row(children: [
+            if (pos > 0) Expanded(flex: pos,
+                child: Container(height: 3, color: OceanColors.positive)),
+            if (neg > 0) Expanded(flex: neg,
+                child: Container(height: 3, color: OceanColors.negative)),
+          ])),
+        ],
+      ]));
   }
+}
+
+class _CompareTable extends StatelessWidget {
+  final Map<String, dynamic> a, b;
+  final ThemeHelper th;
+  const _CompareTable({required this.a, required this.b, required this.th});
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = [
+      _Row('Avis', '${a['total_reviews'] ?? 0}', '${b['total_reviews'] ?? 0}'),
+      _Row('Note',
+          a['avg_rating'] != null ? '${(a['avg_rating'] as double).toStringAsFixed(1)}★' : '—',
+          b['avg_rating'] != null ? '${(b['avg_rating'] as double).toStringAsFixed(1)}★' : '—'),
+      _Row('Score',
+          a['reputation_score'] != null ? '${(a['reputation_score'] as double).toInt()}%' : '—',
+          b['reputation_score'] != null ? '${(b['reputation_score'] as double).toInt()}%' : '—'),
+      _Row('Positifs',
+          '${((a['sentiment'] ?? {}) as Map)['positive'] ?? 0}',
+          '${((b['sentiment'] ?? {}) as Map)['positive'] ?? 0}'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: th.cardBg, borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: th.cardBorder)),
+      child: Column(children: rows.map((r) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(children: [
+          Expanded(child: Text(r.va, style: TextStyle(
+              color: th.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center)),
+          SizedBox(width: 60, child: Text(r.label,
+              style: TextStyle(color: th.textHint, fontSize: 10),
+              textAlign: TextAlign.center)),
+          Expanded(child: Text(r.vb, style: TextStyle(
+              color: th.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center)),
+        ]))).toList()));
+  }
+}
+
+class _Row {
+  final String label, va, vb;
+  const _Row(this.label, this.va, this.vb);
 }

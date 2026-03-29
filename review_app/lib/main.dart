@@ -1,113 +1,163 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui';
 import 'providers/theme_provider.dart';
+import 'ocean_colors.dart';
+import 'glass_widgets.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/trending_screen.dart';
 import 'screens/comparison_screen.dart';
 import 'screens/reviews_screen.dart';
+import 'screens/map_screen.dart';
+import 'screens/categories_screen.dart';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: const ReviewAnalyzerApp(),
-    ),
-  );
+  runApp(ChangeNotifierProvider(
+    create: (_) => ThemeProvider(),
+    child: const ReviewAnalyzerApp(),
+  ));
 }
 
 class ReviewAnalyzerApp extends StatelessWidget {
   const ReviewAnalyzerApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, _) {
-        return MaterialApp(
-          title: 'Review Analyzer',
-          debugShowCheckedModeBanner: false,
-          theme: themeProvider.theme,
-          home: const MainNavigator(),
-        );
-      },
+      builder: (_, tp, __) => MaterialApp(
+        title: 'Review Analyzer',
+        debugShowCheckedModeBanner: false,
+        theme: tp.theme,
+        home: const MainNavigator(),
+      ),
     );
   }
 }
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
-
   @override
   State<MainNavigator> createState() => _MainNavigatorState();
 }
 
 class _MainNavigatorState extends State<MainNavigator> {
-  int _currentIndex = 0;
+  int _index = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const SearchScreen(),
-    const TrendingScreen(),
-    const ComparisonScreen(),
-    const ReviewsScreen(),
+  final _screens = const [
+    HomeScreen(),
+    SearchScreen(),
+    CategoriesScreen(),
+    TrendingScreen(),
+    ComparisonScreen(),
+    MapScreen(),
+    ReviewsScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final tp     = Provider.of<ThemeProvider>(context);
+    final isDark = tp.isDarkMode;
+
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.1, 0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
+      backgroundColor: isDark ? OceanColors.darkBg1 : Colors.white,
+      extendBody: true,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? OceanColors.darkGradient
+              : OceanColors.lightGradient,
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          transitionBuilder: (child, anim) =>
+              FadeTransition(opacity: anim, child: child),
+          child: _screens[_index],
+        ),
+      ),
+      bottomNavigationBar: _buildNavBar(isDark, tp),
+    );
+  }
+
+  Widget _buildNavBar(bool isDark, ThemeProvider tp) {
+    final accent = isDark ? OceanColors.cyan : OceanColors.lightBlue;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withOpacity(0.4)
+                : Colors.white.withOpacity(0.9),
+            border: Border(top: BorderSide(
+                color: isDark
+                    ? Colors.white.withOpacity(0.08)
+                    : OceanColors.lightBorder,
+                width: 0.5)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: (i) => setState(() => _index = i),
+              backgroundColor: Colors.transparent,
+              indicatorColor: accent.withOpacity(0.15),
+              elevation: 0,
+              height: 60,
+              labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+              destinations: [
+                _dest(Icons.home_outlined,     Icons.home_rounded,              'Accueil',    accent),
+                _dest(Icons.search_rounded,    Icons.search_rounded,            'Recherche',  accent),
+                _dest(Icons.category_outlined, Icons.category_rounded,          'Catégories', accent),
+                _dest(Icons.local_fire_department_outlined,
+                      Icons.local_fire_department_rounded,                      'Trending',   accent),
+                _dest(Icons.compare_arrows_outlined,
+                      Icons.compare_arrows_rounded,                             'Comparer',   accent),
+                _dest(Icons.map_outlined,      Icons.map_rounded,               'Carte',      accent),
+                _dest(Icons.list_alt_outlined, Icons.list_alt_rounded,          'Avis',       accent),
+              ],
             ),
-          );
-        },
-        child: _screens[_currentIndex],
+            // Bouton toggle thème compact en bas
+            Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).padding.bottom + 6,
+                  top: 2),
+              child: GestureDetector(
+                onTap: tp.toggleTheme,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: accent.withOpacity(0.2)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                      isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      size: 12,
+                      color: accent,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isDark ? 'Mode clair' : 'Mode sombre',
+                      style: TextStyle(color: accent, fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins'),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ]),
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-        indicatorColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Accueil',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search),
-            selectedIcon: Icon(Icons.search),
-            label: 'Recherche',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.trending_up_rounded),
-            selectedIcon: Icon(Icons.trending_up),
-            label: 'Trending',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.compare_arrows_rounded),
-            selectedIcon: Icon(Icons.compare_arrows),
-            label: 'Comparer',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.list_alt),
-            selectedIcon: Icon(Icons.list_alt),
-            label: 'Avis',
-          ),
-        ],
-      ),
+    );
+  }
+
+  NavigationDestination _dest(IconData off, IconData on, String label, Color accent) {
+    return NavigationDestination(
+      icon: Icon(off),
+      selectedIcon: Icon(on, color: accent),
+      label: label,
     );
   }
 }

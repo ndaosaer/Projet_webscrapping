@@ -39,6 +39,12 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# review_app/.gitignore
+echo "build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies" > review_app\.gitignore
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

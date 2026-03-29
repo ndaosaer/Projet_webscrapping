@@ -1,333 +1,137 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../ocean_colors.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  static const String _themeKey = 'isDarkMode';
-  bool _isDarkMode = true;
-  late SharedPreferences _prefs;
+  bool _isDark = true;
 
-  bool get isDarkMode => _isDarkMode;
+  bool get isDarkMode => _isDark;
 
-  ThemeProvider() {
-    _loadTheme();
-  }
-
-  Future<void> _loadTheme() async {
-    _prefs = await SharedPreferences.getInstance();
-    _isDarkMode = _prefs.getBool(_themeKey) ?? true;
+  void toggleTheme() {
+    _isDark = !_isDark;
     notifyListeners();
   }
 
-  Future<void> toggleTheme() async {
-    _isDarkMode = !_isDarkMode;
-    await _prefs.setBool(_themeKey, _isDarkMode);
-    notifyListeners();
-  }
-
-  ThemeData get theme => _isDarkMode ? _darkTheme : _lightTheme;
-
-  // ── Palette de couleurs moderne ──────────────────────────────────────
-  static const Color _primaryBlue = Color(0xFF2563EB);
-  static const Color _secondaryPurple = Color(0xFF7C3AED);
-  static const Color _accentGreen = Color(0xFF10B981);
-  static const Color _errorRed = Color(0xFFEF4444);
-  static const Color _warningOrange = Color(0xFFF59E0B);
+  ThemeData get theme => _isDark ? _darkTheme : _lightTheme;
 
   static final ThemeData _darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    fontFamily: GoogleFonts.inter().fontFamily,
-    
+    fontFamily: GoogleFonts.poppins().fontFamily,
+    scaffoldBackgroundColor: OceanColors.darkBg1,
     colorScheme: const ColorScheme.dark(
-      primary: _primaryBlue,
-      secondary: _secondaryPurple,
-      tertiary: _accentGreen,
-      error: _errorRed,
-      surface: Color(0xFF1E293B),
-      surfaceContainerHighest: Color(0xFF0F172A),
-      onSurface: Color(0xFFF1F5F9),
-      onSurfaceVariant: Color(0xFF94A3B8),
+      primary: OceanColors.cyan, secondary: OceanColors.teal,
+      tertiary: OceanColors.positive, error: OceanColors.negative,
+      surface: OceanColors.darkBg2,
+      surfaceContainerHighest: OceanColors.darkBg1,
+      onPrimary: OceanColors.darkBg1, onSecondary: OceanColors.darkBg1,
+      onSurface: Colors.white, onSurfaceVariant: OceanColors.w70,
     ),
-    
-    scaffoldBackgroundColor: const Color(0xFF0F172A),
-    
-    cardTheme: CardThemeData(
-      color: const Color(0xFF1E293B),
-      elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: Colors.white.withOpacity(0.05),
-          width: 1,
-        ),
-      ),
-    ),
-    
-    appBarTheme: AppBarTheme(
-      backgroundColor: const Color(0xFF0F172A),
-      elevation: 0,
-      centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: const Color(0xFFF1F5F9),
-        letterSpacing: -0.5,
-      ),
-    ),
-    
+    cardTheme: CardThemeData(color: OceanColors.w15, elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: OceanColors.w30, width: 1))),
+    appBarTheme: AppBarTheme(backgroundColor: Colors.transparent, elevation: 0,
+      titleTextStyle: GoogleFonts.poppins(fontSize: 20,
+          fontWeight: FontWeight.w700, color: Colors.white),
+      iconTheme: const IconThemeData(color: Colors.white)),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: OceanColors.w08,
+      indicatorColor: OceanColors.cyan.withOpacity(0.2),
+      labelTextStyle: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected)
+              ? GoogleFonts.poppins(fontSize: 10, color: OceanColors.cyan, fontWeight: FontWeight.w600)
+              : GoogleFonts.poppins(fontSize: 10, color: OceanColors.w50)),
+      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(
+          color: s.contains(WidgetState.selected) ? OceanColors.cyan : OceanColors.w50))),
+    inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: OceanColors.w08,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: OceanColors.w30)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: OceanColors.w30)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: OceanColors.cyan, width: 1.5)),
+      hintStyle: const TextStyle(color: OceanColors.w50),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
     textTheme: TextTheme(
-      displayLarge: GoogleFonts.inter(
-        fontSize: 57,
-        fontWeight: FontWeight.bold,
-        letterSpacing: -0.25,
-      ),
-      displayMedium: GoogleFonts.inter(
-        fontSize: 45,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-      ),
-      displaySmall: GoogleFonts.inter(
-        fontSize: 36,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-      ),
-      headlineLarge: GoogleFonts.inter(
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-      ),
-      headlineMedium: GoogleFonts.inter(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-      ),
-      headlineSmall: GoogleFonts.inter(
-        fontSize: 24,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0,
-      ),
-      titleLarge: GoogleFonts.inter(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0,
-      ),
-      titleMedium: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.15,
-      ),
-      titleSmall: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
-      ),
-      bodyLarge: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.normal,
-        letterSpacing: 0.5,
-      ),
-      bodyMedium: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-        letterSpacing: 0.25,
-      ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.normal,
-        letterSpacing: 0.4,
-      ),
-      labelLarge: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
-      ),
+      headlineLarge:  GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white),
+      headlineMedium: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
+      titleLarge:     GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+      titleMedium:    GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+      bodyLarge:      GoogleFonts.poppins(fontSize: 15, color: OceanColors.w90),
+      bodyMedium:     GoogleFonts.poppins(fontSize: 13, color: OceanColors.w70),
+      bodySmall:      GoogleFonts.poppins(fontSize: 11, color: OceanColors.w50),
+      labelLarge:     GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
     ),
-    
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: GoogleFonts.inter(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
-      ),
-    ),
-    
-    chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFF1E293B),
-      selectedColor: _primaryBlue.withOpacity(0.2),
-      side: BorderSide(color: Colors.white.withOpacity(0.1)),
-      labelStyle: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-    ),
+    chipTheme: ChipThemeData(backgroundColor: OceanColors.w15,
+      selectedColor: OceanColors.cyan.withOpacity(0.25),
+      side: const BorderSide(color: OceanColors.w30),
+      labelStyle: GoogleFonts.poppins(fontSize: 12, color: Colors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+    sliderTheme: const SliderThemeData(
+      activeTrackColor: OceanColors.cyan, thumbColor: OceanColors.cyan,
+      inactiveTrackColor: OceanColors.w30),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: OceanColors.cyan),
   );
 
   static final ThemeData _lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    fontFamily: GoogleFonts.inter().fontFamily,
-    
-    colorScheme: const ColorScheme.light(
-      primary: _primaryBlue,
-      secondary: _secondaryPurple,
-      tertiary: _accentGreen,
-      error: _errorRed,
-      surface: Colors.white,
-      surfaceContainerHighest: Color(0xFFF8FAFC),
-      onSurface: Color(0xFF0F172A),
-      onSurfaceVariant: Color(0xFF64748B),
+    fontFamily: GoogleFonts.poppins().fontFamily,
+    scaffoldBackgroundColor: OceanColors.lightBg,
+    colorScheme: ColorScheme.light(
+      primary: OceanColors.lightBlue, secondary: OceanColors.lightCyan,
+      tertiary: OceanColors.positive, error: OceanColors.negative,
+      surface: OceanColors.lightSurface,
+      surfaceContainerHighest: const Color(0xFFE0EFFF),
+      onPrimary: Colors.white, onSecondary: Colors.white,
+      onSurface: OceanColors.lightText, onSurfaceVariant: OceanColors.lightMuted,
     ),
-    
-    scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-    
-    cardTheme: CardThemeData(
-      color: Colors.white,
-      elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.05),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: const Color(0xFFE2E8F0),
-          width: 1,
-        ),
-      ),
-    ),
-    
-    appBarTheme: AppBarTheme(
+    cardTheme: CardThemeData(color: Colors.white, elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: OceanColors.lightBlue.withOpacity(0.15), width: 1))),
+    appBarTheme: AppBarTheme(backgroundColor: Colors.white, elevation: 0,
+      titleTextStyle: GoogleFonts.poppins(fontSize: 20,
+          fontWeight: FontWeight.w700, color: OceanColors.lightText),
+      iconTheme: const IconThemeData(color: OceanColors.lightText)),
+    navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
-      elevation: 0,
-      centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: const Color(0xFF0F172A),
-        letterSpacing: -0.5,
-      ),
-      iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
-    ),
-    
+      indicatorColor: OceanColors.lightBlue.withOpacity(0.12),
+      elevation: 8,
+      labelTextStyle: WidgetStateProperty.resolveWith((s) =>
+          s.contains(WidgetState.selected)
+              ? GoogleFonts.poppins(fontSize: 10, color: OceanColors.lightBlue, fontWeight: FontWeight.w600)
+              : GoogleFonts.poppins(fontSize: 10, color: OceanColors.lightMuted)),
+      iconTheme: WidgetStateProperty.resolveWith((s) => IconThemeData(
+          color: s.contains(WidgetState.selected) ? OceanColors.lightBlue : OceanColors.lightMuted))),
+    inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: OceanColors.lightSurface,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: OceanColors.lightBlue.withOpacity(0.2))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: OceanColors.lightBlue.withOpacity(0.2))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: OceanColors.lightBlue, width: 1.5)),
+      hintStyle: const TextStyle(color: OceanColors.lightMuted),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
     textTheme: TextTheme(
-      displayLarge: GoogleFonts.inter(
-        fontSize: 57,
-        fontWeight: FontWeight.bold,
-        letterSpacing: -0.25,
-        color: const Color(0xFF0F172A),
-      ),
-      displayMedium: GoogleFonts.inter(
-        fontSize: 45,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-        color: const Color(0xFF0F172A),
-      ),
-      displaySmall: GoogleFonts.inter(
-        fontSize: 36,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-        color: const Color(0xFF0F172A),
-      ),
-      headlineLarge: GoogleFonts.inter(
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-        color: const Color(0xFF0F172A),
-      ),
-      headlineMedium: GoogleFonts.inter(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0,
-        color: const Color(0xFF0F172A),
-      ),
-      headlineSmall: GoogleFonts.inter(
-        fontSize: 24,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0,
-        color: const Color(0xFF0F172A),
-      ),
-      titleLarge: GoogleFonts.inter(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0,
-        color: const Color(0xFF0F172A),
-      ),
-      titleMedium: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.15,
-        color: const Color(0xFF0F172A),
-      ),
-      titleSmall: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
-        color: const Color(0xFF0F172A),
-      ),
-      bodyLarge: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.normal,
-        letterSpacing: 0.5,
-        color: const Color(0xFF334155),
-      ),
-      bodyMedium: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-        letterSpacing: 0.25,
-        color: const Color(0xFF475569),
-      ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.normal,
-        letterSpacing: 0.4,
-        color: const Color(0xFF64748B),
-      ),
-      labelLarge: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.1,
-        color: const Color(0xFF0F172A),
-      ),
+      headlineLarge:  GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.w700, color: OceanColors.lightText),
+      headlineMedium: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w700, color: OceanColors.lightText),
+      titleLarge:     GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: OceanColors.lightText),
+      titleMedium:    GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: OceanColors.lightText),
+      bodyLarge:      GoogleFonts.poppins(fontSize: 15, color: OceanColors.lightText),
+      bodyMedium:     GoogleFonts.poppins(fontSize: 13, color: OceanColors.lightMuted),
+      bodySmall:      GoogleFonts.poppins(fontSize: 11, color: OceanColors.lightMuted),
+      labelLarge:     GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: OceanColors.lightText),
     ),
-    
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        textStyle: GoogleFonts.inter(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
-      ),
-    ),
-    
-    chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFFF1F5F9),
-      selectedColor: _primaryBlue.withOpacity(0.1),
-      side: const BorderSide(color: Color(0xFFE2E8F0)),
-      labelStyle: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF475569),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-    ),
+    chipTheme: ChipThemeData(backgroundColor: OceanColors.lightSurface,
+      selectedColor: OceanColors.lightBlue.withOpacity(0.15),
+      side: BorderSide(color: OceanColors.lightBlue.withOpacity(0.2)),
+      labelStyle: GoogleFonts.poppins(fontSize: 12, color: OceanColors.lightText),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+    sliderTheme: const SliderThemeData(
+      activeTrackColor: OceanColors.lightBlue, thumbColor: OceanColors.lightBlue,
+      inactiveTrackColor: Color(0xFFCFDFF5)),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(color: OceanColors.lightBlue),
   );
 }
