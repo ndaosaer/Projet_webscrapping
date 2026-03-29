@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comprendre le Projet — Review Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,400&family=Figtree:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0d1117;
+  --bg2:      #161b22;
+  --bg3:      #1c2330;
+  --border:   #30363d;
+  --text:     #e6edf3;
+  --dim:      #8b949e;
+  --faint:    #3d444d;
+  --green:    #3fb950;
+  --green-bg: rgba(63,185,80,.1);
+  --blue:     #58a6ff;
+  --blue-bg:  rgba(88,166,255,.1);
+  --orange:   #f0883e;
+  --orange-bg:rgba(240,136,62,.1);
+  --purple:   #bc8cff;
+  --purple-bg:rgba(188,140,255,.1);
+  --red:      #f85149;
+  --red-bg:   rgba(248,81,73,.1);
+  --yellow:   #e3b341;
+  --yellow-bg:rgba(227,179,65,.1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Figtree',sans-serif;font-size:15.5px;line-height:1.75;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(13,17,23,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);height:52px;display:flex;align-items:center;padding:0 5vw;gap:2rem}
+.nav-brand{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--green);letter-spacing:.1em;flex-shrink:0}
+.nav-links{display:flex;gap:1.5rem;list-style:none;overflow-x:auto}
+.nav-links a{font-size:.78rem;color:var(--dim);text-decoration:none;white-space:nowrap;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+@media(max-width:700px){.nav-links{display:none}}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:5rem 8vw;position:relative;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.3;pointer-events:none}
+.hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(63,185,80,.08) 0%,transparent 70%);top:-100px;right:-100px;pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.1em;color:var(--green);border:1px solid rgba(63,185,80,.3);padding:.35rem .9rem;border-radius:20px;margin-bottom:2rem}
+.hero-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(2.4rem,6vw,5rem);font-weight:800;line-height:1.05;max-width:800px;margin-bottom:1.5rem}
+.hero h1 em{font-style:italic;color:var(--green)}
+.hero-sub{font-size:1.05rem;color:var(--dim);max-width:580px;font-weight:300;margin-bottom:3rem}
+.hero-pipeline{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.pip{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.5rem 1rem;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--dim);transition:all .2s}
+.pip:hover{border-color:var(--green);color:var(--green)}
+.pip-arrow{color:var(--faint);font-size:1rem}
+
+/* ── LAYOUT ── */
+.page{max-width:900px;margin:0 auto;padding:0 6vw}
+
+/* ── CHAPTERS ── */
+.chapter{padding:5rem 0;border-bottom:1px solid var(--border)}
+.chapter:last-child{border-bottom:none}
+.chapter-num{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--faint);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.6rem}
+h2{font-family:'Fraunces',serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:800;line-height:1.1;margin-bottom:1rem}
+.chapter-intro{font-size:1rem;color:var(--dim);max-width:660px;font-weight:300;margin-bottom:2.5rem;line-height:1.8}
+h3{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:600;margin:2.5rem 0 .8rem;color:var(--text)}
+h4{font-size:.9rem;font-weight:600;color:var(--text);margin:.5rem 0}
+p{margin-bottom:1rem;color:var(--dim);font-size:.95rem}
+p:last-child{margin-bottom:0}
+
+/* ── FLOW DIAGRAM ── */
+.flow{display:flex;flex-direction:column;gap:0;margin:2rem 0}
+.flow-row{display:flex;align-items:stretch;gap:0}
+.flow-box{flex:1;background:var(--bg2);border:1px solid var(--border);padding:1.3rem 1.5rem;position:relative}
+.flow-box:not(:last-child){border-right:none}
+.flow-box.active{border-color:var(--green);background:var(--green-bg)}
+.flow-box.active-blue{border-color:var(--blue);background:var(--blue-bg)}
+.flow-box.active-orange{border-color:var(--orange);background:var(--orange-bg)}
+.flow-box.active-purple{border-color:var(--purple);background:var(--purple-bg)}
+.flow-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem}
+.flow-box.active .flow-label{color:var(--green)}
+.flow-box.active-blue .flow-label{color:var(--blue)}
+.flow-box.active-orange .flow-label{color:var(--orange)}
+.flow-box.active-purple .flow-label{color:var(--purple)}
+.flow-title{font-size:.92rem;font-weight:600}
+.flow-desc{font-size:.8rem;color:var(--dim);margin-top:.3rem}
+.flow-connector{display:flex;justify-content:center;align-items:center;padding:.3rem 0;color:var(--faint);font-size:.9rem}
+
+/* ── CODE ── */
+.code{background:#010409;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:1.5rem 0}
+.code-header{background:var(--bg2);padding:.6rem 1.2rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.code-fname{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--dim)}
+.code-lang{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--faint);background:var(--bg3);padding:.15rem .5rem;border-radius:3px}
+.code pre{padding:1.3rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.8;overflow-x:auto;color:#c9d1d9}
+.kw{color:#ff7b72}.str{color:#a5d6ff}.cm{color:#8b949e;font-style:italic}.fn{color:#d2a8ff}.num{color:#79c0ff}.cls{color:#ffa657}.dec{color:#e3b341}
+
+/* ── CARDS ── */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin:1.5rem 0}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.4rem;transition:border-color .2s}
+.card:hover{border-color:var(--dim)}
+.card-icon{font-size:1.5rem;margin-bottom:.7rem}
+.card h4{font-size:.92rem;font-weight:600;margin-bottom:.4rem;color:var(--text)}
+.card p{font-size:.83rem;color:var(--dim);margin:0}
+.card.g{border-top:2px solid var(--green)}.card.b{border-top:2px solid var(--blue)}.card.o{border-top:2px solid var(--orange)}.card.p{border-top:2px solid var(--purple)}.card.r{border-top:2px solid var(--red)}.card.y{border-top:2px solid var(--yellow)}
+
+/* ── CALLOUT ── */
+.callout{border-radius:6px;padding:1.1rem 1.4rem;margin:1.5rem 0;display:flex;gap:.8rem;border:1px solid}
+.callout-icon{font-size:1rem;flex-shrink:0;margin-top:.1rem}
+.callout p{margin:0;font-size:.88rem}
+.call-green{background:var(--green-bg);border-color:rgba(63,185,80,.3)}
+.call-blue{background:var(--blue-bg);border-color:rgba(88,166,255,.3)}
+.call-orange{background:var(--orange-bg);border-color:rgba(240,136,62,.3)}
+.call-purple{background:var(--purple-bg);border-color:rgba(188,140,255,.3)}
+
+/* ── TABLE ── */
+.tbl{overflow-x:auto;margin:1.5rem 0;border:1px solid var(--border);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+thead{background:var(--bg2)}
+th{padding:.75rem 1.1rem;text-align:left;font-size:.73rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border)}
+td{padding:.75rem 1.1rem;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg2)}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.67rem;padding:.15rem .5rem;border-radius:4px;font-weight:500}
+.bg{background:var(--green-bg);color:var(--green)}.bb{background:var(--blue-bg);color:var(--blue)}.bo{background:var(--orange-bg);color:var(--orange)}.bp{background:var(--purple-bg);color:var(--purple)}.br{background:var(--red-bg);color:var(--red)}.by{background:var(--yellow-bg);color:var(--yellow)}
+
+/* ── STEP LIST ── */
+.steps{display:flex;flex-direction:column;gap:0;margin:1.5rem 0;position:relative}
+.steps::before{content:'';position:absolute;left:1.1rem;top:1.5rem;bottom:1.5rem;width:1px;background:var(--border)}
+.step{display:flex;gap:1.2rem;padding:1.2rem 0}
+.step-dot{width:24px;height:24px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--dim);z-index:1}
+.step.active .step-dot{background:var(--green);border-color:var(--green);color:var(--bg)}
+.step-body{}
+.step-body strong{display:block;font-size:.92rem;margin-bottom:.3rem;color:var(--text)}
+.step-body p{font-size:.85rem;margin:0}
+
+/* ── MODEL BOX ── */
+.model-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0}
+@media(max-width:600px){.model-grid{grid-template-columns:1fr}}
+.model-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.4rem}
+.model-name{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--purple);margin-bottom:.5rem;font-weight:500}
+.model-for{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:.8rem}
+.model-tag{display:inline-block;font-size:.72rem;background:var(--purple-bg);color:var(--purple);border-radius:3px;padding:.1rem .45rem;margin:.15rem .1rem;font-family:'JetBrains Mono',monospace}
+.model-tag.t-blue{background:var(--blue-bg);color:var(--blue)}
+.model-tag.t-orange{background:var(--orange-bg);color:var(--orange)}
+
+/* ── ENDPOINT ── */
+.endpoint{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.2rem 1.4rem;margin:.8rem 0;display:flex;align-items:flex-start;gap:1rem}
+.ep-method{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:500;background:var(--green-bg);color:var(--green);padding:.2rem .6rem;border-radius:4px;flex-shrink:0;margin-top:.1rem}
+.ep-path{font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--blue);font-weight:500}
+.ep-desc{font-size:.83rem;color:var(--dim);margin-top:.2rem}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s ease}
+.reveal.v{opacity:1;transform:none}
+
+code{font-family:'JetBrains Mono',monospace;font-size:.82em;background:var(--bg2);padding:.1rem .4rem;border-radius:3px;color:var(--blue)}
+strong.hl{color:var(--text)}
+hr.section-rule{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
+
+/* ── FOOTER ── */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:2rem 6vw;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--faint)}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">REVIEW_ANALYZER</span>
+  <ul class="nav-links">
+    <li><a href="#vision">Vision</a></li>
+    <li><a href="#structure">Structure</a></li>
+    <li><a href="#scraping">Webscraping</a></li>
+    <li><a href="#stockage">Stockage</a></li>
+    <li><a href="#nlp">Pipeline NLP</a></li>
+    <li><a href="#api">API</a></li>
+    <li><a href="#mobile">App Mobile</a></li>
+    <li><a href="#flux">Flux complet</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-badge">● Documentation technique — Compréhension globale</div>
+  <h1>Comment fonctionne<br><em>Review Analyzer</em> ?</h1>
+  <p class="hero-sub">Une lecture complète et pédagogique de l'architecture du projet — du webscraping à l'application mobile, en passant par la base de données et les modèles NLP.</p>
+  <div class="hero-pipeline">
+    <div class="pip">🌐 Scraping</div>
+    <div class="pip-arrow">→</div>
+    <div class="pip">🗄️ SQLite</div>
+    <div class="pip-arrow">→</div>
+    <div class="pip">🧠 NLP</div>
+    <div class="pip-arrow">→</div>
+    <div class="pip">🌐 FastAPI</div>
+    <div class="pip-arrow">→</div>
+    <div class="pip">📱 Flutter</div>
+  </div>
+</section>
+
+<div class="page">
+
+<!-- ══ 01 VISION ══════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="vision">
+  <div class="chapter-num">01 — Point de départ</div>
+  <h2>C'est quoi le problème qu'on résout ?</h2>
+  <p class="chapter-intro">Avant de parler de code, il faut comprendre pourquoi ce projet existe et ce qu'il apporte concrètement.</p>
+
+  <p>Aujourd'hui, les restaurants de Dakar, les boutiques Jumia et les vendeurs Amazon reçoivent des centaines d'avis clients sur plusieurs plateformes différentes. Le problème : <strong class="hl">personne ne peut lire 2 000 avis manuellement</strong> pour comprendre ce que pensent vraiment les clients.</p>
+
+  <p>Review Analyzer résout ce problème en automatisant toute la chaîne : <strong class="hl">collecter ces avis → les analyser → les présenter de façon lisible</strong>. Un restaurateur peut ainsi savoir en quelques secondes que 82% de ses clients sont satisfaits, que le mot-clé "service lent" revient souvent dans les avis négatifs, et que sa note a baissé ces 3 derniers mois — sans lire un seul avis.</p>
+
+  <div class="cards reveal">
+    <div class="card g">
+      <div class="card-icon">🎯</div>
+      <h4>Pour les restaurateurs</h4>
+      <p>Comprendre la réputation de leur établissement en un coup d'œil, sans passer des heures sur TripAdvisor.</p>
+    </div>
+    <div class="card b">
+      <div class="card-icon">🛍️</div>
+      <h4>Pour les e-commerçants</h4>
+      <p>Identifier les points faibles de leurs produits sur Amazon et Jumia grâce aux mots-clés négatifs récurrents.</p>
+    </div>
+    <div class="card o">
+      <div class="card-icon">📊</div>
+      <h4>Pour l'équipe</h4>
+      <p>Démontrer la maîtrise d'un pipeline complet : scraping → NLP → API → mobile. Un projet de bout en bout.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 02 STRUCTURE ══════════════════════════════════════════════════════════ -->
+<section class="chapter" id="structure">
+  <div class="chapter-num">02 — Architecture</div>
+  <h2>Comment le projet est structuré</h2>
+  <p class="chapter-intro">Le projet est divisé en couches indépendantes qui communiquent entre elles. Chaque couche a un rôle précis.</p>
+
+  <div class="flow reveal">
+    <div class="flow-row">
+      <div class="flow-box active">
+        <div class="flow-label">Couche 1 — Collecte</div>
+        <div class="flow-title">Webscraping</div>
+        <div class="flow-desc"><code>scraping/spiders/</code> — Selenium + Chrome. Lit les pages web et extrait les avis.</div>
+      </div>
+    </div>
+    <div class="flow-connector">↓</div>
+    <div class="flow-row">
+      <div class="flow-box active-blue">
+        <div class="flow-label">Couche 2 — Stockage</div>
+        <div class="flow-title">Base de données SQLite</div>
+        <div class="flow-desc"><code>database/</code> — SQLAlchemy ORM. Stocke tous les avis dans un format unifié.</div>
+      </div>
+    </div>
+    <div class="flow-connector">↓</div>
+    <div class="flow-row">
+      <div class="flow-box active-orange">
+        <div class="flow-label">Couche 3 — Analyse</div>
+        <div class="flow-title">Pipeline NLP</div>
+        <div class="flow-desc"><code>nlp_pipeline.py</code> — CamemBERT + RoBERTa + KeyBERT. Analyse les sentiments et extrait les mots-clés.</div>
+      </div>
+    </div>
+    <div class="flow-connector">↓</div>
+    <div class="flow-row">
+      <div class="flow-box active-purple">
+        <div class="flow-label">Couche 4 — Exposition</div>
+        <div class="flow-title">API REST FastAPI</div>
+        <div class="flow-desc"><code>api/main.py</code> — Expose les données analysées via des endpoints HTTP.</div>
+      </div>
+    </div>
+    <div class="flow-connector">↓</div>
+    <div class="flow-row">
+      <div class="flow-box active" style="--green:.6">
+        <div class="flow-label" style="color:var(--yellow)">Couche 5 — Visualisation</div>
+        <div class="flow-title">Application Flutter</div>
+        <div class="flow-desc"><code>review_app/</code> — Application mobile qui consomme l'API et affiche les résultats.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout call-blue reveal">
+    <div class="callout-icon">💡</div>
+    <p><strong class="hl">Principe clé :</strong> chaque couche est indépendante. Le scraping ne sait pas que le NLP existe. Le NLP ne sait pas que l'API existe. Ils communiquent uniquement via la base de données et les fichiers JSON. Ça permet de modifier une couche sans casser les autres.</p>
+  </div>
+</section>
+
+<!-- ══ 03 SCRAPING ════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="scraping">
+  <div class="chapter-num">03 — Collecte des données</div>
+  <h2>Comment on a scrappé chaque plateforme</h2>
+  <p class="chapter-intro">Chaque plateforme a sa propre structure HTML, ses propres protections anti-bot, et nécessite une stratégie d'extraction différente.</p>
+
+  <h3>Pourquoi Selenium et pas Scrapy ?</h3>
+  <p>La première intuition était d'utiliser Scrapy, un framework Python rapide et populaire pour le scraping. Mais TripAdvisor, Amazon et Google Maps chargent leurs contenus <strong class="hl">dynamiquement via JavaScript</strong> — le HTML initial ne contient pas les avis. Scrapy lit uniquement le HTML statique, donc il ne voit rien.</p>
+  <p>Selenium résout ce problème en contrôlant un vrai navigateur Chrome qui exécute le JavaScript exactement comme un humain. On voit ce que l'utilisateur verrait.</p>
+
+  <div class="callout call-orange reveal">
+    <div class="callout-icon">⚙️</div>
+    <p><strong class="hl">Mode furtif Chrome :</strong> Chrome est lancé avec des options spéciales pour ressembler à un vrai utilisateur — suppression du flag <code>navigator.webdriver</code>, user-agent Chrome 144 réaliste, profil temporaire dans <code>C:\Temp\chrome_selenium</code>. Sans ça, TripAdvisor détecte le bot en quelques secondes.</p>
+  </div>
+
+  <h3>TripAdvisor — <span class="badge bg">1 917 avis</span></h3>
+
+  <div class="steps reveal">
+    <div class="step active">
+      <div class="step-dot">1</div>
+      <div class="step-body">
+        <strong>Collecte des URLs des restaurants</strong>
+        <p>Le spider ouvre la page liste "restaurants Dakar" sur TripAdvisor, accepte les cookies automatiquement, puis extrait tous les liens contenant <code>Restaurant_Review</code>. Chaque lien est normalisé (suppression du <code>#REVIEWS</code>) et dédupliqué dans un set Python.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">2</div>
+      <div class="step-body">
+        <strong>Extraction des avis par restaurant</strong>
+        <p>Pour chaque restaurant, le spider récupère : le nom via le premier <code>&lt;h1&gt;</code> non vide (sélecteur agnostique aux classes CSS changeantes), les cartes d'avis via <code>div[data-automation='reviewCard']</code>, le texte complet (clic sur "Plus" si tronqué), la date et l'auteur.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">3</div>
+      <div class="step-body">
+        <strong>Extraction de la note — 4 stratégies en cascade</strong>
+        <p>Les notes TripAdvisor sont dans des SVG avec des classes CSS dynamiques qui changent à chaque mise à jour du site. On utilise 4 méthodes dans l'ordre : <code>aria-label</code> sur le SVG → balise <code>&lt;title&gt;</code> → attribut <code>data-rating</code> → requête JavaScript directe sur le DOM.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">4</div>
+      <div class="step-body">
+        <strong>Pagination automatique — 3 conditions d'arrêt</strong>
+        <p>L'URL de la page suivante est construite par injection d'un offset (<code>-or10-</code>, <code>-or20-</code>...). On s'arrête si : la page est vide (0 avis), le total déclaré par TripAdvisor est atteint, ou la page contient moins de 10 avis (dernière page). Limite absolue : 50 pages par restaurant.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Amazon — <span class="badge bg">148 avis</span></h3>
+  <p>Le spider Amazon construit l'URL des avis à partir de l'ASIN du produit : <code>amazon.fr/product-reviews/ASIN/?sortBy=recent</code>. Il attend 12 secondes le chargement complet, détecte automatiquement les CAPTCHA, extrait les cartes via <code>[data-hook='review']</code> et pagine jusqu'à 5 pages via le bouton <code>li.a-last a</code>.</p>
+
+  <div class="callout call-orange reveal">
+    <div class="callout-icon">⚠️</div>
+    <p><strong class="hl">Problème rencontré :</strong> Le sélecteur de nom de produit récupérait le texte des avis au lieu du vrai nom — résultat : les produits s'appelaient "socle", "Bonne bouilloire", "C'est un téléphone super...". Corrigé en post-traitement via <code>fix_amazon_product_names.py</code> qui mappe les faux noms vers les vrais.</p>
+  </div>
+
+  <h3>Google Maps & Jumia — <span class="badge bb">17 avis</span></h3>
+  <p>Ces plateformes ont été scrapées par d'autres membres de l'équipe qui ont fourni leurs données en format JSON. Ces fichiers contenaient des caractères corrompus (<code>Ã©</code> au lieu de <code>é</code>) — une confusion encodage latin-1/UTF-8 — corrigée automatiquement à l'import.</p>
+
+  <h3>Le problème du blocage anti-bot</h3>
+  <p>Après avoir scrapé 6 restaurants intensivement (des centaines de pages), TripAdvisor a bloqué les requêtes par détection IP. La solution : supprimer le profil Chrome entre les sessions (<code>Remove-Item -Recurse -Force "C:\Temp\chrome_selenium"</code>) et espacer les sessions de 4 à 6 heures. Résultat : seuls 6 restaurants sur 35 ont été scrapés.</p>
+</section>
+
+<!-- ══ 04 STOCKAGE ════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="stockage">
+  <div class="chapter-num">04 — Base de données</div>
+  <h2>Comment les données sont stockées</h2>
+  <p class="chapter-intro">Toutes les données, quelle que soit leur plateforme d'origine, sont stockées dans une base SQLite unique avec un schéma unifié.</p>
+
+  <h3>Pourquoi un schéma unifié ?</h3>
+  <p>TripAdvisor, Amazon, Google Maps et Jumia ont des formats d'avis très différents. Plutôt que de créer une table par plateforme, on a conçu <strong class="hl">une seule table <code>reviews</code></strong> avec un champ <code>platform</code> qui identifie l'origine. Ça simplifie drastiquement les requêtes : pour analyser tous les avis, on fait une seule requête sans jointures complexes.</p>
+
+  <div class="code reveal">
+    <div class="code-header"><span class="code-fname">database/schema.py</span><span class="code-lang">Python</span></div>
+    <pre>
+<span class="kw">class</span> <span class="cls">Review</span>(Base):
+    __tablename__ = <span class="str">"reviews"</span>
+
+    <span class="cm"># ── Identification ────────────────────────────────────────</span>
+    id           = Column(String(<span class="num">36</span>), primary_key=True, default=lambda: str(uuid4()))
+    product_name = Column(String(<span class="num">300</span>))    <span class="cm"># "Restaurant Lagon 1", "iPhone 17"...</span>
+    platform     = Column(Enum(<span class="str">"amazon"</span>, <span class="str">"jumia_sn"</span>, <span class="str">"googlemaps"</span>, <span class="str">"tripadvisor"</span>))
+
+    <span class="cm"># ── Données brutes (collectées par le spider) ─────────────</span>
+    rating       = Column(Float)            <span class="cm"># 1.0 à 5.0</span>
+    comment_text = Column(Text)             <span class="cm"># texte complet de l'avis</span>
+    comment_date = Column(String(<span class="num">50</span>))      <span class="cm"># date brute telle qu'affichée</span>
+    author       = Column(String(<span class="num">150</span>))    <span class="cm"># nom de l'auteur</span>
+    url_source   = Column(String(<span class="num">500</span>))    <span class="cm"># URL d'origine</span>
+    scraped_at   = Column(DateTime, default=datetime.utcnow)
+
+    <span class="cm"># ── Résultats NLP (remplis par nlp_pipeline.py) ───────────</span>
+    language        = Column(String(<span class="num">10</span>))   <span class="cm"># 'fr', 'en', 'wo'...</span>
+    sentiment       = Column(Enum(<span class="str">"positive"</span>, <span class="str">"negative"</span>, <span class="str">"neutral"</span>))
+    sentiment_score = Column(Float)         <span class="cm"># score de confiance : 0.0 → 1.0</span>
+    keywords        = Column(JSON)          <span class="cm"># ["service lent", "cuisine excellente"]</span>
+    </pre>
+  </div>
+
+  <h3>Comment SQLAlchemy simplifie le travail</h3>
+  <p>SQLAlchemy est un ORM (Object-Relational Mapper). Au lieu d'écrire du SQL brut, on manipule des objets Python. Pour insérer un avis, on crée un objet <code>Review</code> et on fait <code>db.add(review); db.commit()</code> — SQLAlchemy génère le SQL automatiquement. Et si on change de base (SQLite → PostgreSQL), on change juste une ligne dans <code>.env</code>.</p>
+
+  <h3>Le workflow import/export JSON</h3>
+  <p>Comme l'équipe travaille sur des machines différentes, les données circulent en JSON — un format universel lisible par tous. Voici le flux :</p>
+
+  <div class="steps reveal">
+    <div class="step active">
+      <div class="step-dot">1</div>
+      <div class="step-body">
+        <strong>Scraping → SQLite directement</strong>
+        <p>Les spiders TripAdvisor et Amazon insèrent les avis directement dans la base SQLite locale via SQLAlchemy, en temps réel pendant le scraping.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">2</div>
+      <div class="step-body">
+        <strong>SQLite → JSON (export)</strong>
+        <p><code>export_tripadvisor.py</code> et <code>export_amazon.py</code> lisent la base et génèrent des fichiers JSON uniformisés dans <code>data/raw/</code>. Ces fichiers peuvent être partagés avec l'équipe.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">3</div>
+      <div class="step-body">
+        <strong>JSON → SQLite (import unifié)</strong>
+        <p><code>import_reviews.py</code> accepte plusieurs fichiers JSON en argument (Amazon, Google Maps, Jumia...), corrige l'encodage, vérifie les doublons via 4 critères (auteur + produit + date + plateforme), et insère les nouveaux avis.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">4</div>
+      <div class="step-body">
+        <strong>Nettoyage des doublons</strong>
+        <p><code>clean_amazon_duplicates.py</code> supprime les enregistrements avec les anciens noms de produits incorrects. A supprimé 149 doublons pour passer de 297 à 148 avis Amazon propres.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>État final de la base</h3>
+  <div class="tbl reveal">
+    <table>
+      <thead><tr><th>Plateforme</th><th>Avis</th><th>Produits / Lieux</th><th>Statut NLP</th></tr></thead>
+      <tbody>
+        <tr><td>TripAdvisor</td><td><strong>1 917</strong></td><td>6 restaurants Dakar</td><td><span class="badge bb">En attente</span></td></tr>
+        <tr><td>Amazon</td><td><strong>148</strong></td><td>iPhone 17, Bouilloire Philips, Support Casque</td><td><span class="badge bb">En attente</span></td></tr>
+        <tr><td>Google Maps</td><td><strong>7</strong></td><td>Le Lagon 1, Hôtel Terrou-Bi</td><td><span class="badge bb">En attente</span></td></tr>
+        <tr><td>Jumia SN</td><td><strong>10</strong></td><td>Écouteurs, Clé USB, TV Astech</td><td><span class="badge bb">En attente</span></td></tr>
+        <tr><td><strong>Total</strong></td><td><strong>2 082</strong></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ 05 NLP ══════════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="nlp">
+  <div class="chapter-num">05 — Intelligence artificielle</div>
+  <h2>Comment fonctionne la pipeline NLP</h2>
+  <p class="chapter-intro">Le NLP (Natural Language Processing) est le cœur analytique du projet. C'est ce qui transforme un texte brut en information structurée et exploitable.</p>
+
+  <h3>Les 3 analyses effectuées sur chaque avis</h3>
+  <div class="cards reveal">
+    <div class="card g">
+      <div class="card-icon">🌍</div>
+      <h4>1. Détection de langue</h4>
+      <p>Identifie si l'avis est en français, anglais, ou autre. Important car les modèles de sentiment ne sont pas les mêmes selon la langue.</p>
+    </div>
+    <div class="card o">
+      <div class="card-icon">❤️</div>
+      <h4>2. Analyse de sentiment</h4>
+      <p>Classifie l'avis en positive, negative ou neutral. C'est l'analyse principale — elle répond à "le client est-il satisfait ?".</p>
+    </div>
+    <div class="card p">
+      <div class="card-icon">🏷️</div>
+      <h4>3. Extraction de mots-clés</h4>
+      <p>Identifie les thèmes récurrents : "service lent", "cuisine excellente", "rapport qualité/prix", etc. Répond à "pourquoi est-il satisfait ou pas ?".</p>
+    </div>
+  </div>
+
+  <h3>Les modèles utilisés</h3>
+
+  <div class="model-grid reveal">
+    <div class="model-box">
+      <div class="model-name">distilcamembert-base-sentiment</div>
+      <div class="model-for">Pour les avis en FRANÇAIS</div>
+      <p style="font-size:.83rem;color:var(--dim);margin-bottom:.8rem">CamemBERT est l'équivalent français de BERT — un modèle Transformer pré-entraîné sur des milliards de mots français. La variante "distil" est plus légère (~250MB) et aussi précise.</p>
+      <span class="model-tag">Français</span>
+      <span class="model-tag">Avis consommateurs</span>
+      <span class="model-tag">cmarkea</span>
+      <hr style="border:none;border-top:1px solid var(--border);margin:.8rem 0">
+      <p style="font-size:.78rem;color:var(--dim);margin:0">Retourne des labels "1 star" à "5 stars" — convertis ensuite en positive/negative/neutral via un mapping.</p>
+    </div>
+    <div class="model-box">
+      <div class="model-name">twitter-roberta-base-sentiment</div>
+      <div class="model-for">Pour les avis en ANGLAIS et autres</div>
+      <p style="font-size:.83rem;color:var(--dim);margin-bottom:.8rem">RoBERTa est une version optimisée de BERT, fine-tunée sur des données Twitter multilingues (~500MB). Gère directement les labels positive/negative/neutral.</p>
+      <span class="model-tag t-blue">Anglais</span>
+      <span class="model-tag t-blue">Multilingue</span>
+      <span class="model-tag t-blue">cardiffnlp</span>
+      <hr style="border:none;border-top:1px solid var(--border);margin:.8rem 0">
+      <p style="font-size:.78rem;color:var(--dim);margin:0">Retourne directement negative/neutral/positive avec un score de confiance entre 0 et 1.</p>
+    </div>
+  </div>
+
+  <div class="model-grid reveal">
+    <div class="model-box" style="grid-column:1/-1">
+      <div class="model-name">paraphrase-multilingual-MiniLM-L12-v2</div>
+      <div class="model-for">Pour les MOTS-CLÉS — via KeyBERT</div>
+      <p style="font-size:.83rem;color:var(--dim);margin-bottom:.8rem">KeyBERT utilise un modèle de sentence embeddings pour représenter les phrases et les mots-clés sous forme de vecteurs numériques, puis trouve les mots dont le vecteur est le plus proche du vecteur de l'avis entier. Ce modèle MiniLM gère le français, l'anglais et 50+ langues.</p>
+      <span class="model-tag t-orange">FR + EN + 50 langues</span>
+      <span class="model-tag t-orange">sentence-transformers</span>
+      <span class="model-tag t-orange">unigrammes + bigrammes</span>
+    </div>
+  </div>
+
+  <h3>Comment fonctionne la vectorisation</h3>
+  <p>La vectorisation est la méthode qui permet à un modèle de "comprendre" du texte. En voici le principe simplifié :</p>
+
+  <div class="steps reveal">
+    <div class="step active">
+      <div class="step-dot">1</div>
+      <div class="step-body">
+        <strong>Tokenisation</strong>
+        <p>Le texte est découpé en tokens — petits morceaux de mots. "Restaurant" devient par exemple ["Rest", "##aurant"]. CamemBERT accepte jusqu'à 512 tokens (~800 mots). Les avis plus longs sont tronqués à 1 000 caractères avant tokenisation.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">2</div>
+      <div class="step-body">
+        <strong>Embedding — conversion en vecteurs</strong>
+        <p>Chaque token est converti en un vecteur de 768 nombres (pour BERT de base). Ces vecteurs encodent le sens du mot dans son contexte — "service" dans "service excellent" aura un vecteur différent de "service" dans "service catastrophique".</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">3</div>
+      <div class="step-body">
+        <strong>Classification par le modèle</strong>
+        <p>Le modèle prend les vecteurs en entrée et produit des scores pour chaque classe (positive, negative, neutral). La classe avec le score le plus élevé est choisie. Ce score devient le <code>sentiment_score</code> — la confiance du modèle.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">4</div>
+      <div class="step-body">
+        <strong>Extraction de mots-clés (KeyBERT)</strong>
+        <p>KeyBERT encode l'avis entier en un vecteur global, puis encode chaque candidat mot-clé (unigramme ou bigramme) en vecteur. Les mots-clés retenus sont ceux dont le vecteur a la plus haute similarité cosinus avec le vecteur de l'avis. <code>use_maxsum=True</code> garantit la diversité des mots-clés retenus.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>La correction du seuil "neutral"</h3>
+  <p>Un problème courant en NLP sur avis : les modèles surclassifient en "neutral" les avis courts ou ambigus. On a mis en place une correction post-modèle :</p>
+
+  <div class="code reveal">
+    <div class="code-header"><span class="code-fname">nlp_pipeline.py — Correction du seuil</span><span class="code-lang">Python</span></div>
+    <pre>
+<span class="cm"># Si le modèle dit "neutral" avec une confiance < 70%,
+# on corrige en utilisant la note (rating) comme signal fort</span>
+<span class="kw">if</span> label == <span class="str">"neutral"</span> <span class="kw">and</span> score < <span class="num">0.70</span>:
+    <span class="kw">if</span> rating <span class="kw">is not</span> None:
+        <span class="kw">if</span> rating >= <span class="num">4</span>:    label = <span class="str">"positive"</span>   <span class="cm"># 4-5★ → positif</span>
+        <span class="kw">elif</span> rating <= <span class="num">2</span>: label = <span class="str">"negative"</span>   <span class="cm"># 1-2★ → négatif</span>
+        <span class="kw">else</span>:            label = <span class="str">"positive"</span>   <span class="cm"># 3★ → positif par défaut</span>
+    <span class="kw">else</span>:
+        label = <span class="str">"positive"</span>  <span class="cm"># sans note → positif par défaut</span>
+    </pre>
+  </div>
+
+  <p>Ce seuil de 0.70 a été calibré empiriquement — validé à <strong class="hl">F1 Weighted = 87.4%</strong> sur les données d'évaluation.</p>
+
+  <h3>Pourquoi F1 Weighted et pas la simple accuracy ?</h3>
+  <p>Les données sont fortement déséquilibrées : environ 84% des avis sont positifs (les gens qui ont eu une mauvaise expérience écrivent rarement). Une simple accuracy serait trompeuse — un modèle qui dit "positive" tout le temps aurait 84% d'accuracy mais serait inutile. Le F1 Weighted pondère chaque classe par son nombre d'exemples réels, ce qui est la métrique standard en NLP sur données déséquilibrées.</p>
+
+  <h3>Comment lancer la pipeline</h3>
+  <div class="code reveal">
+    <div class="code-header"><span class="code-fname">Terminal</span><span class="code-lang">Shell</span></div>
+    <pre>
+<span class="cm"># Traite tous les avis non encore analysés (2 082 avis)</span>
+python nlp_pipeline.py
+
+<span class="cm"># Force le retraitement de tous les avis (même déjà analysés)</span>
+python nlp_pipeline.py --force
+
+<span class="cm"># Teste sur une seule plateforme d'abord</span>
+python nlp_pipeline.py --platform amazon
+
+<span class="cm"># Évalue la qualité et exporte un CSV des erreurs</span>
+python evaluate_nlp.py --export rapport_nlp.csv
+    </pre>
+  </div>
+
+  <div class="callout call-green reveal">
+    <div class="callout-icon">⚠️</div>
+    <p><strong class="hl">Premier lancement :</strong> les modèles HuggingFace sont téléchargés automatiquement — CamemBERT (~250MB) + RoBERTa (~500MB) + MiniLM (~120MB). Prévois 20-30 minutes sur une connexion moyenne. Les lancements suivants sont instantanés car les modèles sont mis en cache localement.</p>
+  </div>
+</section>
+
+<!-- ══ 06 API ═══════════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="api">
+  <div class="chapter-num">06 — Exposition des données</div>
+  <h2>Comment fonctionne l'API</h2>
+  <p class="chapter-intro">L'API est le pont entre la base de données et l'application mobile. Elle transforme les données SQLite en réponses JSON accessibles via HTTP.</p>
+
+  <h3>Pourquoi FastAPI et pas Flask ?</h3>
+  <p>FastAPI présente trois avantages décisifs pour ce projet. Premièrement, il génère <strong class="hl">automatiquement une documentation Swagger interactive</strong> sur <code>/docs</code> — pratique pour tester les endpoints sans Postman. Deuxièmement, il utilise <strong class="hl">Pydantic</strong> pour valider automatiquement les données (types, valeurs obligatoires, plages autorisées). Troisièmement, il est <strong class="hl">nativement asynchrone</strong> et bien plus rapide que Flask pour des API à fort trafic.</p>
+
+  <h3>Les schemas Pydantic — <code>api/schemas.py</code></h3>
+  <p>Les schemas définissent exactement ce que l'API retourne. Si la base contient un champ interne qu'on ne veut pas exposer, on ne le met pas dans le schema. Ils servent aussi de validation : si un champ est déclaré <code>float</code> et que la base retourne autre chose, FastAPI lève une erreur claire.</p>
+
+  <div class="code reveal">
+    <div class="code-header"><span class="code-fname">api/schemas.py — Exemple de schema</span><span class="code-lang">Python</span></div>
+    <pre>
+<span class="kw">class</span> <span class="cls">ReviewOut</span>(BaseModel):
+    id:              str
+    product_name:    str
+    platform:        str
+    rating:          Optional[float]
+    comment_text:    str
+    comment_date:    Optional[str]
+    author:          Optional[str]
+    language:        Optional[str]
+    sentiment:       Optional[str]   <span class="cm"># "positive" | "negative" | "neutral"</span>
+    sentiment_score: Optional[float] <span class="cm"># 0.0 → 1.0</span>
+    keywords:        Optional[list[str]]
+
+    <span class="kw">class</span> <span class="cls">Config</span>:
+        from_attributes = True  <span class="cm"># lit directement depuis l'objet SQLAlchemy</span>
+    </pre>
+  </div>
+
+  <h3>Les endpoints disponibles</h3>
+
+  <div class="endpoint reveal">
+    <div class="ep-method">GET</div>
+    <div>
+      <div class="ep-path">/reviews</div>
+      <div class="ep-desc">Liste paginée des avis. Filtres : <code>platform</code>, <code>sentiment</code>, <code>language</code>, <code>search</code>, <code>min_rating</code>, <code>max_rating</code>, <code>limit</code>, <code>offset</code>. Retourne le total et les résultats.</div>
+    </div>
+  </div>
+
+  <div class="endpoint reveal">
+    <div class="ep-method">GET</div>
+    <div>
+      <div class="ep-path">/reviews/{id}</div>
+      <div class="ep-desc">Détail complet d'un avis par son UUID. Retourne toutes les données incluant les résultats NLP.</div>
+    </div>
+  </div>
+
+  <div class="endpoint reveal">
+    <div class="ep-method">GET</div>
+    <div>
+      <div class="ep-path">/stats</div>
+      <div class="ep-desc">Statistiques globales : total des avis, note moyenne, répartition par sentiment, détail par plateforme avec positifs/négatifs.</div>
+    </div>
+  </div>
+
+  <div class="endpoint reveal">
+    <div class="ep-method">GET</div>
+    <div>
+      <div class="ep-path">/score?product=Lagon</div>
+      <div class="ep-desc">Score de réputation d'un restaurant ou produit spécifique. Retourne le % d'avis positifs, la note moyenne, et les top 10 mots-clés. C'est l'endpoint principal pour l'app mobile.</div>
+    </div>
+  </div>
+
+  <div class="endpoint reveal">
+    <div class="ep-method">GET</div>
+    <div>
+      <div class="ep-path">/keywords</div>
+      <div class="ep-desc">Top mots-clés les plus fréquents. Filtrable par plateforme et sentiment. Utile pour afficher un nuage de mots dans l'app.</div>
+    </div>
+  </div>
+
+  <div class="endpoint reveal">
+    <div class="ep-method">GET</div>
+    <div>
+      <div class="ep-path">/suggestions?query=lag</div>
+      <div class="ep-desc">Autocomplétion pour la barre de recherche. Retourne les noms de produits/lieux qui contiennent la chaîne recherchée.</div>
+    </div>
+  </div>
+
+  <h3>Lancement de l'API</h3>
+  <div class="code reveal">
+    <div class="code-header"><span class="code-fname">Terminal</span><span class="code-lang">Shell</span></div>
+    <pre>
+<span class="cm"># Lancement avec rechargement automatique (développement)</span>
+uvicorn api.main:app --reload --port 8000
+
+<span class="cm"># Documentation interactive Swagger</span>
+<span class="cm"># → http://localhost:8000/docs</span>
+
+<span class="cm"># Documentation ReDoc (plus lisible)</span>
+<span class="cm"># → http://localhost:8000/redoc</span>
+    </pre>
+  </div>
+</section>
+
+<!-- ══ 07 MOBILE ════════════════════════════════════════════════════════════════ -->
+<section class="chapter" id="mobile">
+  <div class="chapter-num">07 — Application mobile</div>
+  <h2>L'application Flutter — à quoi elle sert</h2>
+  <p class="chapter-intro">Flutter est le framework de Google pour créer des applications mobiles en Dart qui tournent à la fois sur Android et iOS avec un seul code source.</p>
+
+  <h3>Quel est son intérêt dans ce projet ?</h3>
+  <p>La pipeline NLP produit des données structurées (sentiments, scores, mots-clés) stockées en base. L'API les expose via HTTP. Mais ces données restent inutiles pour un utilisateur non technique s'il n'y a pas d'interface pour les consulter.</p>
+  <p>L'application Flutter est la <strong class="hl">couche de présentation</strong> — ce que voit l'utilisateur final. Elle consomme l'API REST et transforme des données JSON en interface visuelle intuitive. Un restaurateur qui n'a jamais entendu parler de JSON peut ainsi consulter la réputation de son établissement depuis son téléphone.</p>
+
+  <div class="cards reveal">
+    <div class="card g">
+      <div class="card-icon">📊</div>
+      <h4>Dashboard de réputation</h4>
+      <p>Affiche le score global d'un restaurant (% positifs, note moyenne) avec un graphique de distribution des sentiments.</p>
+    </div>
+    <div class="card b">
+      <div class="card-icon">🔍</div>
+      <h4>Recherche avec autocomplétion</h4>
+      <p>Barre de recherche connectée à l'endpoint <code>/suggestions</code> pour trouver rapidement un restaurant ou produit.</p>
+    </div>
+    <div class="card o">
+      <div class="card-icon">💬</div>
+      <h4>Liste des avis filtrés</h4>
+      <p>Affiche les avis avec leur sentiment coloré (vert/rouge/gris) et leurs mots-clés. Filtrable par sentiment.</p>
+    </div>
+    <div class="card p">
+      <div class="card-icon">☁️</div>
+      <h4>Nuage de mots-clés</h4>
+      <p>Visualise les thèmes récurrents grâce à l'endpoint <code>/keywords</code> — les mots les plus fréquents apparaissent plus grands.</p>
+    </div>
+  </div>
+
+  <h3>Comment Flutter communique avec l'API</h3>
+  <p>Flutter utilise le package <code>http</code> de Dart pour faire des requêtes HTTP vers l'API FastAPI. Le JSON retourné est désérialisé en objets Dart via des classes modèles. Voici le principe :</p>
+
+  <div class="code reveal">
+    <div class="code-header"><span class="code-fname">lib/main.dart — Appel API</span><span class="code-lang">Dart</span></div>
+    <pre>
+<span class="cm">// Récupère le score de réputation d'un restaurant</span>
+<span class="kw">Future</span>&lt;<span class="cls">ScoreData</span>&gt; <span class="fn">fetchScore</span>(String productName) <span class="kw">async</span> {
+  <span class="kw">final</span> response = <span class="kw">await</span> http.get(
+    Uri.parse(<span class="str">'http://localhost:8000/score?product=$productName'</span>),
+  );
+
+  <span class="kw">if</span> (response.statusCode == <span class="num">200</span>) {
+    <span class="kw">return</span> ScoreData.fromJson(jsonDecode(response.body));
+  } <span class="kw">else</span> {
+    <span class="kw">throw</span> Exception(<span class="str">'Erreur API : ${response.statusCode}'</span>);
+  }
+}
+
+<span class="cm">// Affiche le résultat dans un widget</span>
+<span class="kw">FutureBuilder</span>&lt;<span class="cls">ScoreData</span>&gt;(
+  future: fetchScore(<span class="str">'Lagon'</span>),
+  builder: (context, snapshot) {
+    <span class="kw">if</span> (snapshot.hasData) {
+      <span class="kw">return</span> Text(<span class="str">'Score : ${snapshot.data!.reputationScore}%'</span>);
+    }
+    <span class="kw">return</span> CircularProgressIndicator();
+  },
+)
+    </pre>
+  </div>
+
+  <div class="callout call-purple reveal">
+    <div class="callout-icon">📱</div>
+    <p><strong class="hl">Un code, deux plateformes :</strong> le même code Dart tourne sur Android et iOS sans modification. Pour un prototype ou un projet académique, Flutter permet de livrer une vraie application mobile sans doubler le travail de développement.</p>
+  </div>
+</section>
+
+<!-- ══ 08 FLUX COMPLET ═══════════════════════════════════════════════════════════ -->
+<section class="chapter" id="flux">
+  <div class="chapter-num">08 — Vue d'ensemble</div>
+  <h2>Le flux de données complet</h2>
+  <p class="chapter-intro">Voici ce qui se passe exactement de bout en bout, de la page web TripAdvisor jusqu'à l'écran du téléphone de l'utilisateur.</p>
+
+  <div class="steps reveal">
+    <div class="step active">
+      <div class="step-dot">1</div>
+      <div class="step-body">
+        <strong>Le spider ouvre Chrome et navigue sur TripAdvisor</strong>
+        <p>Chrome est lancé en mode furtif. Le spider accepte les cookies, collecte les URLs des restaurants, puis pour chaque restaurant scrape toutes les pages d'avis. Chaque avis est inséré immédiatement en base SQLite.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">2</div>
+      <div class="step-body">
+        <strong>Les avis des autres équipes sont importés</strong>
+        <p><code>import_reviews.py</code> fusionne les fichiers JSON Google Maps et Jumia dans la même base SQLite, en corrigeant l'encodage et en évitant les doublons.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">3</div>
+      <div class="step-body">
+        <strong>La pipeline NLP analyse les 2 082 avis</strong>
+        <p><code>nlp_pipeline.py</code> lit chaque avis, détecte sa langue, choisit le bon modèle (CamemBERT pour le français, RoBERTa sinon), calcule le sentiment et le score de confiance, extrait les mots-clés, puis écrit les résultats dans les colonnes NLP de la base.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">4</div>
+      <div class="step-body">
+        <strong>L'API FastAPI expose les données</strong>
+        <p>Le serveur uvicorn démarre. L'API lit la base SQLite et répond aux requêtes HTTP. Elle sérialise les objets SQLAlchemy en JSON validé par Pydantic.</p>
+      </div>
+    </div>
+    <div class="step active">
+      <div class="step-dot">5</div>
+      <div class="step-body">
+        <strong>Flutter affiche les résultats</strong>
+        <p>L'app mobile fait une requête <code>GET /score?product=Lagon</code>, reçoit le JSON, le désérialise en objet Dart, et affiche le score de réputation, les sentiments et les mots-clés à l'utilisateur.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout call-green reveal">
+    <div class="callout-icon">✅</div>
+    <p><strong class="hl">Ce que ce projet démontre :</strong> la maîtrise d'une stack technique complète — Selenium pour le scraping, SQLAlchemy pour la persistance, HuggingFace Transformers pour le NLP, FastAPI pour l'API REST, et Flutter pour le mobile. Chaque composant est professionnel et documenté.</p>
+  </div>
+</section>
+
+</div>
+<footer>Review Analyzer — Documentation pédagogique · Dakar, Sénégal · Février 2026</footer>
+
+<script>
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach((e,i) => {
+    if(e.isIntersecting) setTimeout(() => e.target.classList.add('v'), i*60);
+  });
+}, {threshold:.06});
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// Nav active
+const sections = document.querySelectorAll('section[id],.chapter[id]');
+const links = document.querySelectorAll('.nav-links a');
+window.addEventListener('scroll', () => {
+  let cur = '';
+  sections.forEach(s => { if(window.scrollY >= s.offsetTop - 130) cur = s.id; });
+  links.forEach(l => { l.style.color = l.getAttribute('href')==='#'+cur ? 'var(--green)' : ''; });
+});
+</script>
+</body>
+</html>

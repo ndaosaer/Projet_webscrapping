@@ -1,0 +1,14 @@
+# Créer un .gitignore avant de pousser
+@"
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+*.sqlite3
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+"@ | Out-File -FilePath .gitignore -Encoding UTF8

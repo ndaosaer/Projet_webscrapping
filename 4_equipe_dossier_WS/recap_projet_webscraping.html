@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Projet 5 — Analyse des Critiques de Produits</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1528;
+    --card: #131929;
+    --border: #1e2d4a;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --accent3: #8b5cf6;
+    --green: #10b981;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Sora', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BG ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    width: 800px; height: 800px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .badge::before { content: '●'; animation: pulse 2s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 50%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: fadeDown 0.6s 0.1s ease both;
+    margin-bottom: 1rem;
+  }
+
+  .hero .sub {
+    font-size: 1.2rem;
+    color: var(--text2);
+    max-width: 600px;
+    animation: fadeDown 0.6s 0.2s ease both;
+    margin-bottom: 3rem;
+  }
+
+  .platforms {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeDown 0.6s 0.3s ease both;
+  }
+
+  .platform-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .platform-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .platform-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .green-dot { background: var(--green); }
+  .orange-dot { background: var(--orange); }
+  .blue-dot { background: var(--accent); }
+  .purple-dot { background: var(--accent3); }
+
+  @keyframes fadeDown {
+    from { opacity:0; transform: translateY(-20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-section {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+
+  .progress-section h2 {
+    font-size: 0.75rem;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .phases-bar {
+    display: flex;
+    gap: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .phase-bar-item {
+    flex: 1;
+    padding: 1rem;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .phase-bar-item:last-child { border-right: none; }
+
+  .phase-bar-item.done { background: rgba(16,185,129,0.08); }
+  .phase-bar-item.current { background: rgba(59,130,246,0.1); }
+  .phase-bar-item.pending { opacity: 0.4; }
+
+  .phase-bar-item .ph-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+  .phase-bar-item .ph-label { font-size: 0.72rem; color: var(--text2); font-weight: 600; }
+  .phase-bar-item .ph-status {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    margin-top: 4px;
+  }
+  .done .ph-status { color: var(--green); }
+  .current .ph-status { color: var(--accent); }
+  .pending .ph-status { color: var(--text3); }
+
+  /* ── SECTION WRAPPER ── */
+  .section {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 2rem 4rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  .section h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* ── STEP CARDS ── */
+  .steps { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .step-num {
+    width: 56px; height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    border: 1px solid;
+  }
+
+  .step-num.blue { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: var(--accent); }
+  .step-num.green { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: var(--green); }
+  .step-num.purple { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: var(--accent3); }
+  .step-num.orange { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); color: var(--orange); }
+  .step-num.cyan { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.4); color: var(--accent2); }
+
+  .step-body { flex: 1; }
+  .step-body h3 { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem; }
+  .step-body p { font-size: 0.9rem; color: var(--text2); margin-bottom: 0.75rem; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #080c18;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0.75rem 0;
+  }
+
+  .code-block .code-header {
+    background: #0d1220;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .code-block .code-header .dots { display: flex; gap: 6px; }
+  .code-block .code-header .dots span {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .code-block .code-header .lang {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text3);
+    margin-left: auto;
+  }
+
+  .code-block pre {
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: #a8e6cf;
+    white-space: pre;
+  }
+
+  .code-block pre .kw { color: #89cff0; }
+  .code-block pre .str { color: #ffd580; }
+  .code-block pre .cmt { color: #4a5568; font-style: italic; }
+  .code-block pre .fn { color: #c9b1ff; }
+  .code-block pre .num { color: #ff9a9a; }
+
+  /* ── RESULT BOX ── */
+  .result-box {
+    background: rgba(16,185,129,0.06);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 0.75rem;
+  }
+
+  .result-box .result-title {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .result-box .result-items { display: flex; flex-direction: column; gap: 4px; }
+  .result-box .ri {
+    font-size: 0.85rem;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .result-box .ri::before { content: '✅'; font-size: 0.75rem; }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+  }
+  .info-box.blue { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); color: #93c5fd; }
+  .info-box.orange { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+  .info-box.purple { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.2); color: #c4b5fd; }
+  .info-box strong { display: block; margin-bottom: 4px; font-weight: 700; }
+
+  /* ── DATA FLOW ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 2rem 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .flow-node {
+    flex-shrink: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .flow-node .fn-icon { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+  .flow-node .fn-label { font-size: 0.75rem; font-weight: 700; color: #fff; }
+  .flow-node .fn-sub { font-size: 0.65rem; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+  .flow-arrow {
+    flex-shrink: 0;
+    padding: 0 0.5rem;
+    color: var(--accent);
+    font-size: 1.2rem;
+  }
+
+  /* ── STATS GRID ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .stat-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+  .stat-card .stat-num { font-size: 2.2rem; font-weight: 800; font-family: var(--mono); background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat-card .stat-label { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+
+  /* ── JSON PREVIEW ── */
+  .json-preview {
+    background: #080c18;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  .json-key { color: #89cff0; }
+  .json-str { color: #ffd580; }
+  .json-num { color: #a8e6cf; }
+  .json-bool { color: #c9b1ff; }
+
+  /* ── TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin: 1rem 0;
+  }
+
+  .data-table th {
+    background: rgba(59,130,246,0.1);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,45,74,0.5);
+    color: var(--text2);
+    vertical-align: top;
+  }
+
+  .data-table tr:hover td { background: rgba(59,130,246,0.03); }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+
+  .tag.green { background: rgba(16,185,129,0.15); color: var(--green); }
+  .tag.blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .tag.orange { background: rgba(245,158,11,0.15); color: var(--orange); }
+  .tag.purple { background: rgba(139,92,246,0.15); color: var(--accent3); }
+
+  /* ── DIVIDER ── */
+  .divider {
+    max-width: 960px;
+    margin: 0 auto;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text3);
+    font-size: 0.85rem;
+    font-family: var(--mono);
+  }
+
+  .next-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .next-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .next-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .next-card.done::before { background: var(--green); }
+  .next-card.inprogress::before { background: var(--accent); }
+  .next-card.pending::before { background: var(--text3); }
+
+  .next-card .nc-status {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .next-card.done .nc-status { color: var(--green); }
+  .next-card.inprogress .nc-status { color: var(--accent); }
+  .next-card.pending .nc-status { color: var(--text3); }
+
+  .next-card h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+  .next-card p { font-size: 0.78rem; color: var(--text2); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .step { grid-template-columns: 44px 1fr; gap: 1rem; }
+    .step-num { width: 44px; height: 44px; font-size: 0.9rem; }
+    .flow { flex-wrap: nowrap; }
+    .phases-bar { flex-direction: column; }
+    .phase-bar-item { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════ HERO -->
+<section class="hero">
+  <div class="badge">PROJET 5 — MÉMOIRE ACADÉMIQUE</div>
+  <h1>Analyse des Critiques<br/>de Produits</h1>
+  <p class="sub">Collecte automatisée d'avis clients · Analyse NLP de sentiment · Application mobile</p>
+  <div class="platforms">
+    <div class="platform-chip"><span class="dot green-dot"></span>Jumia SN ✅</div>
+    <div class="platform-chip"><span class="dot blue-dot"></span>Google Maps 🔑</div>
+    <div class="platform-chip"><span class="dot orange-dot"></span>TripAdvisor ⏳</div>
+    <div class="platform-chip"><span class="dot purple-dot"></span>Amazon ⏳</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════ PROGRESS -->
+<div class="progress-section">
+  <h2>// avancement du projet</h2>
+  <div class="phases-bar">
+    <div class="phase-bar-item done">
+      <span class="ph-icon">📋</span>
+      <div class="ph-label">Cadrage</div>
+      <div class="ph-status">TERMINÉ</div>
+    </div>
+    <div class="phase-bar-item done">
+      <span class="ph-icon">⚙️</span>
+      <div class="ph-label">Environnement</div>
+      <div class="ph-status">TERMINÉ</div>
+    </div>
+    <div class="phase-bar-item current">
+      <span class="ph-icon">🕷️</span>
+      <div class="ph-label">Scraping</div>
+      <div class="ph-status">EN COURS</div>
+    </div>
+    <div class="phase-bar-item pending">
+      <span class="ph-icon">🧠</span>
+      <div class="ph-label">NLP</div>
+      <div class="ph-status">À VENIR</div>
+    </div>
+    <div class="phase-bar-item pending">
+      <span class="ph-icon">📱</span>
+      <div class="ph-label">App Mobile</div>
+      <div class="ph-status">À VENIR</div>
+    </div>
+    <div class="phase-bar-item pending">
+      <span class="ph-icon">📝</span>
+      <div class="ph-label">Mémoire</div>
+      <div class="ph-status">À VENIR</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ STATS -->
+<div class="section">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num">10</div>
+      <div class="stat-label">Avis collectés en base de données</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Produits Jumia scrapés</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">1/4</div>
+      <div class="stat-label">Plateformes opérationnelles</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">0€</div>
+      <div class="stat-label">Coût total de l'infrastructure</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ══════════════════════════════════════════════════════ PHASE 1 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">PHASE 01</span>
+    <h2>Cadrage du Projet</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num blue">01</div>
+      <div class="step-body">
+        <h3>Définition de la problématique centrale</h3>
+        <p>On a formulé la question de recherche qui guide tout le projet :</p>
+        <div class="info-box blue">
+          <strong>Question de recherche</strong>
+          Comment concevoir un système automatisé capable de collecter et analyser les avis clients issus de plateformes hétérogènes, afin de fournir une synthèse fiable du sentiment des anciens consommateurs, accessible via une application mobile ?
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num green">02</div>
+      <div class="step-body">
+        <h3>Objectifs SMART définis (OS1 → OS4)</h3>
+        <p>4 objectifs spécifiques, mesurables et atteignables :</p>
+        <table class="data-table">
+          <tr><th>Code</th><th>Objectif</th><th>Cible</th></tr>
+          <tr><td><span class="tag blue">OS1</span></td><td>Scraping multi-plateformes</td><td>4 plateformes fonctionnelles</td></tr>
+          <tr><td><span class="tag green">OS2</span></td><td>Analyse NLP de sentiment</td><td>Précision F1 &gt; 85%</td></tr>
+          <tr><td><span class="tag purple">OS3</span></td><td>Stockage structuré</td><td>Base de données relationnelle</td></tr>
+          <tr><td><span class="tag orange">OS4</span></td><td>Application mobile</td><td>iOS &amp; Android unifiés</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num purple">03</div>
+      <div class="step-body">
+        <h3>Périmètre IN / OUT SCOPE</h3>
+        <p>On a clairement défini ce que le projet fait <strong>et ne fait pas</strong> :</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem">
+          <div class="info-box blue">
+            <strong>✅ INCLUS</strong>
+            Amazon · Jumia · Google Maps · TripAdvisor<br/>
+            Notes + commentaires + dates<br/>
+            Français + Anglais<br/>
+            App mobile Android
+          </div>
+          <div class="info-box orange">
+            <strong>❌ EXCLU</strong>
+            Réseaux sociaux (Facebook...)<br/>
+            Recommandation personnalisée<br/>
+            Langues arabes (v1)<br/>
+            Hébergement cloud production
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num orange">04</div>
+      <div class="step-body">
+        <h3>Analyse des risques (6 risques identifiés)</h3>
+        <table class="data-table">
+          <tr><th>Risque</th><th>Probabilité</th><th>Mitigation</th></tr>
+          <tr><td>Blocage anti-bot</td><td><span class="tag orange">Élevée</span></td><td>Rotation proxies + délais aléatoires</td></tr>
+          <tr><td>Qualité NLP insuffisante</td><td><span class="tag blue">Moyenne</span></td><td>Tester plusieurs modèles</td></tr>
+          <tr><td>Complexité Flutter</td><td><span class="tag blue">Moyenne</span></td><td>Commencer tôt, limiter v1</td></tr>
+          <tr><td>Données incohérentes</td><td><span class="tag green">Faible</span></td><td>Pipeline de nettoyage</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ══════════════════════════════════════════════════════ PHASE 2 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">PHASE 02</span>
+    <h2>Environnement & Architecture</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num blue">01</div>
+      <div class="step-body">
+        <h3>Vérification de l'environnement</h3>
+        <p>Système : Windows 10/11 · Python 3.12 · Git</p>
+        <div class="code-block">
+          <div class="code-header"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="lang">PowerShell</span></div>
+          <pre><span class="cmt"># Vérification Python</span>
+python --version   <span class="cmt"># → Python 3.12.9</span>
+pip --version      <span class="cmt"># → pip 24.x</span>
+
+<span class="cmt"># Vérification Git</span>
+git --version      <span class="cmt"># → git 2.x</span>
+git config --global user.name <span class="str">"Ton Nom"</span>
+git config --global user.email <span class="str">"ton@email.com"</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num green">02</div>
+      <div class="step-body">
+        <h3>Structure du projet créée</h3>
+        <p>Arborescence complète du projet <code>review_analyzer/</code> :</p>
+        <div class="code-block">
+          <div class="code-header"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="lang">Arborescence</span></div>
+          <pre>review_analyzer/
+├── scraping/
+│   ├── spiders/
+│   │   ├── jumia_spider.py      ✅
+│   │   ├── googlemaps_spider.py ✅
+│   │   ├── tripadvisor_spider.py ⏳
+│   │   └── amazon_spider.py     ⏳
+│   ├── items.py
+│   ├── pipelines.py
+│   └── settings.py
+├── nlp/
+│   ├── preprocessor.py
+│   ├── sentiment_analyzer.py
+│   └── keyword_extractor.py
+├── api/
+│   ├── main.py
+│   └── routes/
+├── database/
+│   ├── schema.py
+│   └── db.py
+├── data/raw/          ← JSON bruts
+├── .env               ← clés secrètes
+├── .gitignore
+├── requirements.txt
+└── scrapy.cfg</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num purple">03</div>
+      <div class="step-body">
+        <h3>Environnement virtuel Python</h3>
+        <p>Installation de toutes les dépendances dans un venv isolé :</p>
+        <div class="code-block">
+          <div class="code-header"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="lang">PowerShell</span></div>
+          <pre><span class="cmt"># Création et activation</span>
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+<span class="cmt"># Installation des packages</span>
+pip install scrapy selenium webdriver-manager
+pip install spacy vaderSentiment langdetect
+pip install fastapi uvicorn sqlalchemy
+pip install pandas numpy pytest
+
+<span class="cmt"># Modèles de langue</span>
+python -m spacy download fr_core_news_md
+python -m spacy download en_core_web_md</pre>
+        </div>
+        <div class="result-box">
+          <div class="result-title">Résultat</div>
+          <div class="result-items">
+            <div class="ri">spaCy 3.8.11 installé et fonctionnel</div>
+            <div class="ri">Modèles FR et EN téléchargés</div>
+            <div class="ri">Toutes les dépendances opérationnelles</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num orange">04</div>
+      <div class="step-body">
+        <h3>Base de données SQLite modélisée</h3>
+        <p>Schéma SQLAlchemy complet — table <code>reviews</code> :</p>
+        <table class="data-table">
+          <tr><th>Champ</th><th>Type</th><th>Description</th></tr>
+          <tr><td>id</td><td><span class="tag blue">UUID</span></td><td>Identifiant unique</td></tr>
+          <tr><td>product_name</td><td><span class="tag purple">VARCHAR</span></td><td>Nom du produit/lieu</td></tr>
+          <tr><td>platform</td><td><span class="tag orange">ENUM</span></td><td>jumia_sn / googlemaps / ...</td></tr>
+          <tr><td>rating</td><td><span class="tag blue">FLOAT</span></td><td>Note de 1.0 à 5.0</td></tr>
+          <tr><td>comment_text</td><td><span class="tag green">TEXT</span></td><td>Texte de l'avis</td></tr>
+          <tr><td>comment_date</td><td><span class="tag purple">VARCHAR</span></td><td>Date de publication</td></tr>
+          <tr><td>author</td><td><span class="tag blue">VARCHAR</span></td><td>Nom de l'auteur</td></tr>
+          <tr><td>sentiment</td><td><span class="tag orange">ENUM</span></td><td>positive/negative/neutral</td></tr>
+          <tr><td>sentiment_score</td><td><span class="tag blue">FLOAT</span></td><td>Score de confiance NLP</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num cyan">05</div>
+      <div class="step-body">
+        <h3>Dépôt Git initialisé</h3>
+        <div class="code-block">
+          <div class="code-header"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="lang">PowerShell</span></div>
+          <pre>git init
+git add .
+git commit -m <span class="str">"feat: initialisation de la structure du projet"</span></pre>
+        </div>
+        <div class="info-box purple">
+          <strong>Convention de commits adoptée</strong>
+          feat: nouvelle fonctionnalité · fix: correction · docs: documentation · test: tests · chore: maintenance
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ══════════════════════════════════════════════════════ PHASE 3 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">PHASE 03</span>
+    <h2>Scraping Multi-plateformes</h2>
+  </div>
+
+  <!-- Architecture du pipeline -->
+  <p style="color:var(--text2);margin-bottom:1.5rem;">Le pipeline de données suit ce flux de bout en bout :</p>
+  <div class="flow">
+    <div class="flow-node">
+      <span class="fn-icon">🌐</span>
+      <div class="fn-label">Plateforme</div>
+      <div class="fn-sub">jumia.sn</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <span class="fn-icon">🕷️</span>
+      <div class="fn-label">Spider Scrapy</div>
+      <div class="fn-sub">extraction</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <span class="fn-icon">🧹</span>
+      <div class="fn-label">Pipeline</div>
+      <div class="fn-sub">nettoyage</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <span class="fn-icon">🗄️</span>
+      <div class="fn-label">SQLite DB</div>
+      <div class="fn-sub">stockage</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">
+      <span class="fn-icon">📄</span>
+      <div class="fn-label">JSON brut</div>
+      <div class="fn-sub">sauvegarde</div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num green">01</div>
+      <div class="step-body">
+        <h3>Spider Jumia SN — Fonctionnel ✅</h3>
+        <p>Méthode d'inspection utilisée : <strong>Scrapy Shell</strong> pour identifier les vrais sélecteurs CSS sur le site réel.</p>
+        <div class="info-box blue">
+          <strong>🔍 Découverte clé</strong>
+          Jumia expose ses avis via une URL API interne :<br/>
+          <code>/catalog/productratingsreviews/sku/{SKU}/</code><br/>
+          Le SKU est extrait depuis l'attribut <code>data-sku</code> du formulaire d'achat.
+        </div>
+        <div class="code-block">
+          <div class="code-header"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="lang">Python — Sélecteurs CSS validés</span></div>
+          <pre><span class="cmt"># Nom du produit</span>
+response.css(<span class="str">"h1.-fs20.-pts.-pbxs::text"</span>).get()
+
+<span class="cmt"># SKU du produit (clé pour accéder aux avis)</span>
+response.css(<span class="str">"form#add-to-cart::attr(data-sku)"</span>).get()
+
+<span class="cmt"># Conteneur d'un avis</span>
+review = response.css(<span class="str">"article.-pvs.-hr._bet"</span>)
+
+<span class="cmt"># Note de l'avis</span>
+review.css(<span class="str">".stars._m._al.-mvs::text"</span>).get()  <span class="cmt"># "4 out of 5"</span>
+
+<span class="cmt"># Texte du commentaire</span>
+review.css(<span class="str">"p.-pvs::text"</span>).get()
+
+<span class="cmt"># Date</span>
+review.css(<span class="str">"span.-prs::text"</span>).get()  <span class="cmt"># "16-02-2026"</span>
+
+<span class="cmt"># Auteur</span>
+review.css(<span class="str">"span:not(.-prs)::text"</span>).get()  <span class="cmt"># "par Ibrahima"</span></pre>
+        </div>
+        <div class="result-box">
+          <div class="result-title">Résultats du premier scraping réussi</div>
+          <div class="result-items">
+            <div class="ri">10 avis collectés sur 3 produits</div>
+            <div class="ri">Encodage UTF-8 corrigé (latin1 → utf-8)</div>
+            <div class="ri">Déduplication automatique active</div>
+            <div class="ri">Données stockées en base SQLite</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num blue">02</div>
+      <div class="step-body">
+        <h3>Données collectées — Aperçu réel</h3>
+        <p>Exemple d'avis extrait et nettoyé stocké en base :</p>
+        <div class="json-preview">
+{<br/>
+&nbsp;&nbsp;<span class="json-key">"product_name"</span>: <span class="json-str">"Astech Téléviseur LED 43 Pouces - Smart Android"</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"platform"</span>: <span class="json-str">"jumia_sn"</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"rating"</span>: <span class="json-num">5.0</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"comment_text"</span>: <span class="json-str">"satisfait : Image et son parfaits"</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"comment_date"</span>: <span class="json-str">"19-01-2026"</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"author"</span>: <span class="json-str">"Sadio"</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"sentiment"</span>: <span class="json-bool">null</span>,<br/>
+&nbsp;&nbsp;<span class="json-key">"sentiment_score"</span>: <span class="json-bool">null</span><br/>
+&nbsp;&nbsp;<span class="cmt">// ↑ sera rempli en Phase 4 — NLP</span><br/>
+}
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num orange">03</div>
+      <div class="step-body">
+        <h3>Pipeline de nettoyage — <code>pipelines.py</code></h3>
+        <p>Chaque avis passe par 5 étapes de traitement avant d'être inséré en base :</p>
+        <table class="data-table">
+          <tr><th>#</th><th>Étape</th><th>Problème résolu</th></tr>
+          <tr><td>1</td><td>Correction encodage UTF-8</td><td><code>Ã‰couteurs</code> → <code>Écouteurs</code></td></tr>
+          <tr><td>2</td><td>Nettoyage des espaces</td><td>Espaces multiples supprimés</td></tr>
+          <tr><td>3</td><td>Formatage du commentaire</td><td>Titre + corps réunis</td></tr>
+          <tr><td>4</td><td>Filtre avis vides</td><td>Items sans texte ignorés</td></tr>
+          <tr><td>5</td><td>Déduplication</td><td>Même auteur + date = doublon</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num purple">04</div>
+      <div class="step-body">
+        <h3>Spider Google Maps — En attente d'activation API 🔑</h3>
+        <p>Le spider est codé et fonctionnel. Il attend l'activation de la facturation Google Cloud pour utiliser l'API Places.</p>
+        <div class="info-box orange">
+          <strong>⚠️ Prérequis</strong>
+          Activer la facturation sur console.cloud.google.com (gratuit jusqu'à 200$/mois). Ajouter la clé dans le fichier <code>.env</code>. Ne jamais partager la clé API publiquement.
+        </div>
+        <div class="code-block">
+          <div class="code-header"><div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div><span class="lang">API Google Places — Flux</span></div>
+          <pre><span class="cmt"># Étape 1 — Trouver le lieu par nom</span>
+GET /place/findplacefromtext/json
+  ?input=<span class="str">"Restaurant Le Lagon Dakar"</span>
+  &fields=place_id,name,rating
+
+<span class="cmt"># Étape 2 — Récupérer les avis via place_id</span>
+GET /place/details/json
+  ?place_id=<span class="str">"ChIJxxxxxxxx"</span>
+  &fields=name,reviews,rating
+  &language=<span class="str">fr</span>
+  <span class="cmt"># → Retourne max 5 avis (limite API gratuite)</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider"/>
+
+<!-- ══════════════════════════════════════════════════════ NEXT STEPS -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">PROCHAINES ÉTAPES</span>
+    <h2>Roadmap à venir</h2>
+  </div>
+
+  <div class="next-steps">
+    <div class="next-card done">
+      <div class="nc-status">✅ TERMINÉ</div>
+      <h4>Jumia SN</h4>
+      <p>Spider + Pipeline + BDD opérationnels. 10 avis stockés.</p>
+    </div>
+    <div class="next-card inprogress">
+      <div class="nc-status">🔑 EN ATTENTE</div>
+      <h4>Google Maps</h4>
+      <p>Spider codé. Attente activation facturation Google Cloud.</p>
+    </div>
+    <div class="next-card pending">
+      <div class="nc-status">⏳ À FAIRE</div>
+      <h4>TripAdvisor</h4>
+      <p>Nécessite Selenium pour contourner le JavaScript dynamique.</p>
+    </div>
+    <div class="next-card pending">
+      <div class="nc-status">⏳ À FAIRE</div>
+      <h4>Phase 4 — NLP</h4>
+      <p>VADER + CamemBERT pour analyser le sentiment des avis collectés.</p>
+    </div>
+    <div class="next-card pending">
+      <div class="nc-status">⏳ À FAIRE</div>
+      <h4>Phase 5 — API</h4>
+      <p>FastAPI pour exposer les données aux clients mobiles.</p>
+    </div>
+    <div class="next-card pending">
+      <div class="nc-status">⏳ À FAIRE</div>
+      <h4>Phase 5 — Flutter</h4>
+      <p>Application mobile iOS &amp; Android avec visualisation des sentiments.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ FOOTER -->
+<footer class="footer">
+  <p style="color:var(--accent);font-size:1rem;margin-bottom:0.5rem">Projet 5 — Analyse des Critiques de Produits</p>
+  <p>Projet académique · Python 3.12 · Scrapy 2.11 · spaCy 3.8 · SQLAlchemy 2.0 · FastAPI · Flutter</p>
+  <p style="margin-top:0.5rem;color:var(--text3)">Windows 10/11 · Février 2026</p>
+</footer>
+
+</body>
+</html>
