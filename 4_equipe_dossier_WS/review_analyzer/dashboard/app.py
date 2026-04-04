@@ -36,7 +36,8 @@ except ImportError:
     FOLIUM_OK = False
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-API_BASE = "http://localhost:8000"
+import os
+API_BASE = os.getenv("API_URL", "https://projet-webscrapping.onrender.com")
 
 st.set_page_config(
     page_title="Review Analyzer — Dashboard",
