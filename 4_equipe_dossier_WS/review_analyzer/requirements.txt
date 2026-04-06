@@ -116,4 +116,3 @@ slowapi
 python-dotenv
 python-multipart
 
-matplotlib>=3.8.0
