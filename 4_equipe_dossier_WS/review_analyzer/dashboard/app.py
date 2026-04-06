@@ -127,7 +127,11 @@ st.markdown("""
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.image("https://via.placeholder.com/200x100/0066cc/ffffff?text=ENSAE+DAKAR", width=200),
+    st.markdown("""
+    <h1 style='text-align: center; color: #1f77b4;'>
+        AS3 ENSAE Dakar - Analyse des Avis Clients
+    </h1>
+""", unsafe_allow_html=True)
     st.title("Review Analyzer")
     st.caption("Dashboard analytique — Groupe 5")
     st.divider()
