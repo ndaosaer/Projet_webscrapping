@@ -127,8 +127,7 @@ st.markdown("""
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.image("https://www.facebook.com/ENSAEDK/photos/logo-de-lensae-de-dakar/491605766306377/?locale=sw_KE",
-             width=120, use_column_width=False)
+    st.image("https://via.placeholder.com/200x100/0066cc/ffffff?text=ENSAE+DAKAR", width=200),
     st.title("Review Analyzer")
     st.caption("Dashboard analytique — Groupe 5")
     st.divider()
