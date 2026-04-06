@@ -1,4 +1,4 @@
-# Review Analyzer
+# Review Analyzer (utiliser la branche Master)
 
 Systeme automatise de collecte, d'analyse NLP et de restitution des avis clients issus de multiples plateformes numeriques au Senegal.
 
