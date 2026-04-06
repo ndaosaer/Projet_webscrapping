@@ -127,7 +127,7 @@ st.markdown("""
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/ENSAE_logo.svg/200px-ENSAE_logo.svg.png",
+    st.image("https://www.facebook.com/ENSAEDK/photos/logo-de-lensae-de-dakar/491605766306377/?locale=sw_KE",
              width=120, use_column_width=False)
     st.title("Review Analyzer")
     st.caption("Dashboard analytique — Groupe 5")
