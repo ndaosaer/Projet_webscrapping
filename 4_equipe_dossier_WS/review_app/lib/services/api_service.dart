@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = 'https://projet-webscrapping.onrender.com';
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
 

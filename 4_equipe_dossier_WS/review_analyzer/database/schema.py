@@ -16,10 +16,13 @@ class Review(Base):
     id           = Column(String(36), primary_key=True,
                           default=lambda: str(uuid.uuid4()))
     product_name = Column(String(300), nullable=False, index=True)
-    platform     = Column(
-                       Enum("amazon", "jumia_sn", "googlemaps", "tripadvisor", name="platform_enum"),
+
+    platform = Column(
+                       Enum("amazon", "jumia_sn", "googlemaps", "tripadvisor", "booking", "dakarmidi"),
+		       254649a (feat: scrapers Booking+GoogleMaps+NLP complet — 3744 avis Render)
                        nullable=False
                    )
+    
     rating       = Column(Float, nullable=True)
     comment_text = Column(Text, nullable=False)
     comment_date = Column(String(50), nullable=True)
