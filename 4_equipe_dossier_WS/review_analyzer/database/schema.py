@@ -18,7 +18,7 @@ class Review(Base):
     product_name = Column(String(300), nullable=False, index=True)
 
     platform = Column(
-                       Enum("amazon", "jumia_sn", "googlemaps", "tripadvisor", "booking", "dakarmidi"),
+                       Enum("amazon", "jumia_sn", "googlemaps", "tripadvisor", "booking", "dakarmidi", name="platform_enum"),
                        nullable=False
                    )
     
