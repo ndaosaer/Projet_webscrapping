@@ -19,7 +19,6 @@ class Review(Base):
 
     platform = Column(
                        Enum("amazon", "jumia_sn", "googlemaps", "tripadvisor", "booking", "dakarmidi"),
-		       254649a (feat: scrapers Booking+GoogleMaps+NLP complet — 3744 avis Render)
                        nullable=False
                    )
     
