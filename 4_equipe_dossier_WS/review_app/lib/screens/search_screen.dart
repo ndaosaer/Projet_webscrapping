@@ -13,13 +13,15 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final _api   = ApiService();
-  final _ctrl  = TextEditingController();
-  final _focus = FocusNode();
+  final _api    = ApiService();
+  final _ctrl   = TextEditingController();
+  final _focus  = FocusNode();
+  final _layer  = OverlayPortalController();
+
   List<String> _suggestions = [];
   List<Map<String, dynamic>> _popular = [];
   Map<String, dynamic>? _result;
-  bool _loading = false, _loadingPop = false, _showSug = false;
+  bool _loading = false, _loadingPop = false, _loadingSug = false;
   String? _error;
   Timer? _debounce;
 
@@ -36,12 +38,27 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _ctrl.addListener(_onChange);
-    _focus.addListener(() => setState(() {}));
+    _focus.addListener(_onFocusChange);
     _loadPopular();
   }
 
   @override
-  void dispose() { _ctrl.dispose(); _focus.dispose(); _debounce?.cancel(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {});
+    // Si on perd le focus et qu'il y a du texte → garde le résultat
+    if (!_focus.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) setState(() => _suggestions = []);
+      });
+    }
+  }
 
   Future<void> _loadPopular() async {
     setState(() => _loadingPop = true);
@@ -61,37 +78,51 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onChange() {
     _debounce?.cancel();
     final q = _ctrl.text.trim();
-    if (q.isEmpty) { setState(() { _suggestions = []; _showSug = false; _result = null; _error = null; }); return; }
-    if (q.length < 2) return;
-    _debounce = Timer(const Duration(milliseconds: 280), () => _fetchSug(q));
+    if (q.isEmpty) {
+      setState(() { _suggestions = []; _result = null; _error = null; });
+      return;
+    }
+    // Autocomplétion dès 1 caractère
+    _debounce = Timer(const Duration(milliseconds: 200), () => _fetchSug(q));
   }
 
   Future<void> _fetchSug(String q) async {
+    if (!mounted) return;
+    setState(() => _loadingSug = true);
     try {
       final r = await _api.getSuggestions(q);
       if (!mounted) return;
       setState(() {
         _suggestions = List<String>.from(r['suggestions'] ?? []);
-        _showSug = _suggestions.isNotEmpty && _result == null;
+        _loadingSug = false;
       });
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _loadingSug = false);
+    }
   }
 
   Future<void> _search(String q) async {
     if (q.trim().isEmpty) return;
     FocusScope.of(context).unfocus();
-    setState(() { _loading = true; _error = null; _showSug = false; });
+    setState(() { _loading = true; _error = null; _suggestions = []; });
     try {
       final r = await _api.getScore(q.trim());
       setState(() { _result = r; _loading = false; });
-    } catch (e) { setState(() { _error = e.toString(); _loading = false; }); }
+    } catch (e) {
+      setState(() { _error = e.toString(); _loading = false; });
+    }
   }
 
-  void _pick(String s) { _ctrl.text = s; setState(() => _showSug = false); _search(s); }
+  void _pick(String s) {
+    _ctrl.text = s;
+    setState(() => _suggestions = []);
+    _search(s);
+  }
 
   void _clear() {
     _ctrl.clear();
-    setState(() { _result = null; _error = null; _showSug = false; _suggestions = []; });
+    setState(() { _result = null; _error = null; _suggestions = []; });
+    _focus.requestFocus();
   }
 
   @override
@@ -99,8 +130,11 @@ class _SearchScreenState extends State<SearchScreen> {
     final t = ThemeHelper.of(context);
     return GlassScaffold(body: SafeArea(child: Column(children: [
       _searchBar(t),
-      Expanded(child: _loading ? const GlassLoading()
-          : _showSug ? _suggestions_(t)
+      // Dropdown suggestions inline (sous la barre)
+      if (_suggestions.isNotEmpty || _loadingSug) _suggestionsDropdown(t),
+      // Corps principal
+      Expanded(child: _loading
+          ? const GlassLoading()
           : _error != null ? _errorW(t)
           : _result != null ? _resultW(t)
           : _explore(t)),
@@ -109,11 +143,14 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _searchBar(ThemeHelper t) {
     final focused = _focus.hasFocus;
-    return Padding(padding: const EdgeInsets.fromLTRB(16, 14, 16, 10), child: Column(
+    return Padding(padding: const EdgeInsets.fromLTRB(16, 14, 16, 6), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Expanded(child: Text(_result != null ? 'Résultats' : 'Recherche', style: t.titleStyle)),
+          Expanded(child: Text(
+            _result != null ? 'Résultats' : 'Recherche',
+            style: t.titleStyle,
+          )),
           if (_result != null) GestureDetector(onTap: _clear, child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: t.cardDecoration(radius: 20),
@@ -122,21 +159,107 @@ class _SearchScreenState extends State<SearchScreen> {
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: t.surface, borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: focused ? t.accent : t.cardBorder, width: focused ? 1.5 : 1)),
+            color: t.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: focused ? t.accent : t.cardBorder,
+              width: focused ? 1.5 : 1,
+            ),
+            boxShadow: focused ? [BoxShadow(color: t.accent.withOpacity(0.08), blurRadius: 8, spreadRadius: 1)] : [],
+          ),
           child: TextField(
-            controller: _ctrl, focusNode: _focus,
+            controller: _ctrl,
+            focusNode: _focus,
             style: TextStyle(color: t.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              hintText: 'Produit, restaurant, hôtel...',
-              hintStyle: TextStyle(color: t.textHint, fontSize: 14),
+              hintText: 'Tapez une lettre pour voir les suggestions…',
+              hintStyle: TextStyle(color: t.textHint, fontSize: 13),
               prefixIcon: Icon(Icons.search_rounded, color: focused ? t.accent : t.textHint, size: 18),
-              suffixIcon: _ctrl.text.isNotEmpty ? IconButton(
-                icon: Icon(Icons.cancel_rounded, color: t.textHint, size: 16), onPressed: _clear) : null,
+              suffixIcon: _ctrl.text.isNotEmpty
+                  ? Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (_loadingSug) SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: t.accent),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.cancel_rounded, color: t.textHint, size: 16),
+                        onPressed: _clear,
+                      ),
+                    ])
+                  : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
-            onSubmitted: _search, onChanged: (_) => setState(() {}))),
-      ]));
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+            onSubmitted: _search,
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+      ],
+    ));
+  }
+
+  Widget _suggestionsDropdown(ThemeHelper t) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      constraints: const BoxConstraints(maxHeight: 280),
+      decoration: BoxDecoration(
+        color: t.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: t.cardBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: _loadingSug && _suggestions.isEmpty
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))),
+            )
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: _suggestions.length,
+                separatorBuilder: (_, __) => Divider(height: 1, color: t.cardBorder),
+                itemBuilder: (context, i) {
+                  final s = _suggestions[i];
+                  final query = _ctrl.text.trim();
+                  return InkWell(
+                    onTap: () => _pick(s),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      child: Row(children: [
+                        Icon(Icons.search_rounded, size: 14, color: t.accent),
+                        const SizedBox(width: 10),
+                        Expanded(child: _highlightMatch(s, query, t)),
+                        Icon(Icons.north_west_rounded, size: 12, color: t.textHint),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+    );
+  }
+
+  /// Met en gras la partie qui correspond à la saisie
+  Widget _highlightMatch(String text, String query, ThemeHelper t) {
+    if (query.isEmpty) {
+      return Text(text, style: TextStyle(color: t.textPrimary, fontSize: 13));
+    }
+    final lower = text.toLowerCase();
+    final qLower = query.toLowerCase();
+    final idx = lower.indexOf(qLower);
+    if (idx < 0) {
+      return Text(text, style: TextStyle(color: t.textPrimary, fontSize: 13));
+    }
+    return RichText(text: TextSpan(children: [
+      if (idx > 0) TextSpan(text: text.substring(0, idx), style: TextStyle(color: t.textMuted, fontSize: 13)),
+      TextSpan(text: text.substring(idx, idx + query.length),
+          style: TextStyle(color: t.accent, fontSize: 13, fontWeight: FontWeight.bold)),
+      if (idx + query.length < text.length)
+        TextSpan(text: text.substring(idx + query.length), style: TextStyle(color: t.textPrimary, fontSize: 13)),
+    ]));
   }
 
   Widget _explore(ThemeHelper t) => ListView(
@@ -145,18 +268,23 @@ class _SearchScreenState extends State<SearchScreen> {
       Text('Catégories', style: t.labelStyle.copyWith(fontSize: 13)),
       const SizedBox(height: 10),
       Wrap(spacing: 8, runSpacing: 8,
-        children: _cats.map((c) => GestureDetector(onTap: () => _pick(c.query),
+        children: _cats.map((c) => GestureDetector(
+          onTap: () => _pick(c.query),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: c.color.withOpacity(t.isDark ? 0.15 : 0.10),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: c.color.withOpacity(t.isDark ? 0.4 : 0.5))),
+              border: Border.all(color: c.color.withOpacity(t.isDark ? 0.4 : 0.5)),
+            ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(c.icon, size: 14, color: c.color),
               const SizedBox(width: 6),
               Text(c.label, style: TextStyle(color: c.color, fontSize: 12, fontWeight: FontWeight.w600)),
-            ])))).toList()),
+            ]),
+          ),
+        )).toList(),
+      ),
       const SizedBox(height: 20),
       Row(children: [
         Icon(Icons.local_fire_department_rounded, size: 14, color: t.accent),
@@ -166,21 +294,8 @@ class _SearchScreenState extends State<SearchScreen> {
       const SizedBox(height: 10),
       if (_loadingPop) const SizedBox(height: 60, child: GlassLoading())
       else ..._popular.map((p) => _PopTile(product: p, t: t, onTap: () => _pick(p['name']))),
-    ]);
-
-  Widget _suggestions_(ThemeHelper t) => ListView(
-    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-    children: _suggestions.map((s) => GestureDetector(onTap: () => _pick(s),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: t.cardDecoration(),
-        child: Row(children: [
-          Icon(Icons.search_rounded, size: 14, color: t.accent),
-          const SizedBox(width: 10),
-          Expanded(child: Text(s, style: TextStyle(color: t.textPrimary, fontSize: 13))),
-          Icon(Icons.north_west_rounded, size: 12, color: t.textHint),
-        ])))).toList());
+    ],
+  );
 
   Widget _resultW(ThemeHelper t) {
     final product = _result!['product'] ?? '';
@@ -202,7 +317,7 @@ class _SearchScreenState extends State<SearchScreen> {
       Container(padding: const EdgeInsets.all(16), decoration: t.accentDecoration(sc),
         child: Row(children: [
           SizedBox(width: 70, height: 70, child: Stack(fit: StackFit.expand, children: [
-            CircularProgressIndicator(value: score/100, strokeWidth: 6,
+            CircularProgressIndicator(value: score / 100, strokeWidth: 6,
                 backgroundColor: t.cardBorder, valueColor: AlwaysStoppedAnimation(sc)),
             Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
               Text('${score.toInt()}', style: TextStyle(color: sc, fontSize: 20, fontWeight: FontWeight.bold, height: 1)),
@@ -219,7 +334,8 @@ class _SearchScreenState extends State<SearchScreen> {
               Text('${avg.toStringAsFixed(1)} / 5', style: TextStyle(color: t.textMuted, fontSize: 12)),
             ]),
           ])),
-        ])),
+        ]),
+      ),
       const SizedBox(height: 10),
       _SentBar(sentiment: sent, t: t),
       const SizedBox(height: 10),
@@ -233,14 +349,19 @@ class _SearchScreenState extends State<SearchScreen> {
       ],
       const SizedBox(height: 14),
       GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailScreen(productName: product))),
-        child: Container(padding: const EdgeInsets.symmetric(vertical: 13),
+        onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => DetailScreen(productName: product))),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 13),
           decoration: t.accentDecoration(t.accent),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.list_alt_rounded, color: t.accent, size: 16),
             const SizedBox(width: 8),
-            Text('Voir les avis détaillés', style: TextStyle(color: t.accent, fontSize: 13, fontWeight: FontWeight.bold)),
-          ]))),
+            Text('Voir les avis détaillés',
+                style: TextStyle(color: t.accent, fontSize: 13, fontWeight: FontWeight.bold)),
+          ]),
+        ),
+      ),
     ]);
   }
 
@@ -253,27 +374,34 @@ class _SearchScreenState extends State<SearchScreen> {
       const SizedBox(height: 16),
       GestureDetector(onTap: _clear,
         child: GlassBadge(label: 'Nouvelle recherche', icon: Icons.refresh_rounded, color: t.accent)),
-    ])));
+    ]),
+  ));
 }
 
-class _Cat { final IconData icon; final String label; final Color color; final String query;
-  const _Cat(this.icon, this.label, this.color, this.query); }
+class _Cat {
+  final IconData icon; final String label; final Color color; final String query;
+  const _Cat(this.icon, this.label, this.color, this.query);
+}
 
 class _PopTile extends StatelessWidget {
   final Map<String, dynamic> product; final ThemeHelper t; final VoidCallback onTap;
   const _PopTile({required this.product, required this.t, required this.onTap});
   @override
   Widget build(BuildContext context) {
-    final name = product['name'] ?? ''; final rating = product['rating'] ?? 0.0; final plat = product['platform'] ?? '';
-    return GestureDetector(onTap: onTap, child: Container(margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), decoration: t.cardDecoration(),
+    final name = product['name'] ?? ''; final rating = product['rating'] ?? 0.0;
+    return GestureDetector(onTap: onTap, child: Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: t.cardDecoration(),
       child: Row(children: [
         Icon(Icons.inventory_2_rounded, color: t.textHint, size: 14), const SizedBox(width: 10),
-        Expanded(child: Text(name, style: TextStyle(color: t.textPrimary, fontSize: 12, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+        Expanded(child: Text(name, style: TextStyle(color: t.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+            maxLines: 1, overflow: TextOverflow.ellipsis)),
         Text(rating.toStringAsFixed(1), style: TextStyle(color: t.textMuted, fontSize: 11)),
         const SizedBox(width: 6),
         Icon(Icons.chevron_right_rounded, size: 14, color: t.textHint),
-      ])));
+      ]),
+    ));
   }
 }
 
@@ -286,15 +414,19 @@ class _SentBar extends StatelessWidget {
     final tot = pos + neg + neu; if (tot == 0) return const SizedBox();
     return Container(padding: const EdgeInsets.all(14), decoration: t.cardDecoration(), child: Column(children: [
       ClipRRect(borderRadius: BorderRadius.circular(4), child: Row(children: [
-        if (pos > 0) Expanded(flex: (pos/tot*100).round(), child: Container(height: 8, color: OceanColors.positive)),
-        if (neg > 0) Expanded(flex: (neg/tot*100).round(), child: Container(height: 8, color: OceanColors.negative)),
-        if (neu > 0) Expanded(flex: (neu/tot*100).round(), child: Container(height: 8, color: OceanColors.neutral.withOpacity(0.6))),
+        if (pos > 0) Expanded(flex: (pos / tot * 100).round(), child: Container(height: 8, color: OceanColors.positive)),
+        if (neg > 0) Expanded(flex: (neg / tot * 100).round(), child: Container(height: 8, color: OceanColors.negative)),
+        if (neu > 0) Expanded(flex: (neu / tot * 100).round(),
+            child: Container(height: 8, color: OceanColors.neutral.withOpacity(0.6))),
       ])),
       const SizedBox(height: 10),
       Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        Column(children: [Text('$pos', style: TextStyle(color: OceanColors.positive, fontSize: 14, fontWeight: FontWeight.bold)), Text('Positif', style: TextStyle(color: t.textMuted, fontSize: 10))]),
-        Column(children: [Text('$neg', style: TextStyle(color: OceanColors.negative, fontSize: 14, fontWeight: FontWeight.bold)), Text('Négatif', style: TextStyle(color: t.textMuted, fontSize: 10))]),
-        Column(children: [Text('$neu', style: TextStyle(color: OceanColors.neutral, fontSize: 14, fontWeight: FontWeight.bold)), Text('Neutre', style: TextStyle(color: t.textMuted, fontSize: 10))]),
+        Column(children: [Text('$pos', style: TextStyle(color: OceanColors.positive, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text('Positif', style: TextStyle(color: t.textMuted, fontSize: 10))]),
+        Column(children: [Text('$neg', style: TextStyle(color: OceanColors.negative, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text('Négatif', style: TextStyle(color: t.textMuted, fontSize: 10))]),
+        Column(children: [Text('$neu', style: TextStyle(color: OceanColors.neutral, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text('Neutre', style: TextStyle(color: t.textMuted, fontSize: 10))]),
       ]),
     ]));
   }
